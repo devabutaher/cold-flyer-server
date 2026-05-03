@@ -1,0 +1,37 @@
+const jwt = require('jsonwebtoken');
+
+const generateAccessToken = (user) => {
+  return jwt.sign(
+    {
+      userId: user._id,
+      email: user.email,
+      role: user.role,
+      shopId: user.shop || null,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES_IN || '15m' }
+  );
+};
+
+const generateRefreshToken = (user) => {
+  return jwt.sign(
+    { userId: user._id, tokenVersion: user.tokenVersion || 0 },
+    process.env.JWT_REFRESH_SECRET,
+    { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
+  );
+};
+
+const verifyAccessToken = (token) => {
+  return jwt.verify(token, process.env.JWT_SECRET);
+};
+
+const verifyRefreshToken = (token) => {
+  return jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+};
+
+module.exports = {
+  generateAccessToken,
+  generateRefreshToken,
+  verifyAccessToken,
+  verifyRefreshToken,
+};
