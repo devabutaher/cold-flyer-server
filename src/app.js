@@ -14,8 +14,6 @@ const shopRoutes = require("./routes/shop.routes");
 const reviewRoutes = require("./routes/review.routes");
 const paymentRoutes = require("./routes/payment.routes");
 const adminRoutes = require("./routes/admin.routes");
-const dns = require("dns");
-dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
 const app = express();
 app.use(helmet());
@@ -41,7 +39,7 @@ const limiter = rateLimit({
 });
 app.use("/api", limiter);
 
-const admin = require('./config/firebase');
+const admin = require("./config/firebase");
 
 app.get("/api/health", (req, res) => {
   res.json({
@@ -54,6 +52,7 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/upload", require("./routes/upload.routes"));
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/cart", cartRoutes);
