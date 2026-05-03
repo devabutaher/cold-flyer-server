@@ -64,19 +64,14 @@ const updateUserRole = catchAsync(async (req, res) => {
 const getAllProducts = catchAsync(async (req, res) => {
   const { page = 1, limit = 20 } = req.query;
 
-  const query = {};
-  if (req.user.role === 'manager' && req.user.shop) {
-    query.shop = req.user.shop;
-  }
-
-  const products = await Product.find(query)
+  const products = await Product.find()
     .populate('shop', 'name')
     .populate('createdBy', 'name')
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(parseInt(limit));
 
-  const total = await Product.countDocuments(query);
+  const total = await Product.countDocuments();
 
   res.json({
     success: true,
@@ -89,9 +84,6 @@ const getAllOrders = catchAsync(async (req, res) => {
   const { status, paymentStatus, page = 1, limit = 20 } = req.query;
 
   const query = {};
-  if (req.user.role === 'manager' && req.user.shop) {
-    query.items = { $elemMatch: { shop: req.user.shop } };
-  }
   if (status) query.status = status;
   if (paymentStatus) query.paymentStatus = paymentStatus;
 
@@ -113,18 +105,13 @@ const getAllOrders = catchAsync(async (req, res) => {
 const getAllServices = catchAsync(async (req, res) => {
   const { page = 1, limit = 20 } = req.query;
 
-  const query = {};
-  if (req.user.role === 'manager' && req.user.shop) {
-    query.shop = req.user.shop;
-  }
-
-  const services = await Service.find(query)
+  const services = await Service.find()
     .populate('shop', 'name')
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(parseInt(limit));
 
-  const total = await Service.countDocuments(query);
+  const total = await Service.countDocuments();
 
   res.json({
     success: true,
@@ -207,9 +194,6 @@ const getTechnicians = catchAsync(async (req, res) => {
   const { status, page = 1, limit = 20 } = req.query;
 
   const query = {};
-  if (req.user.role === 'manager' && req.user.shop) {
-    query.shop = req.user.shop;
-  }
   if (status) query.status = status;
 
   const technicians = await Technician.find(query)

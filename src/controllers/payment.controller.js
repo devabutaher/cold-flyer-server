@@ -83,7 +83,7 @@ const getPaymentById = catchAsync(async (req, res) => {
     throw ApiError.notFound('Payment not found');
   }
 
-  if (payment.user._id.toString() !== req.user._id.toString() && !['admin', 'manager'].includes(req.user.role)) {
+  if (payment.user._id.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
     throw ApiError.forbidden('Not authorized');
   }
 

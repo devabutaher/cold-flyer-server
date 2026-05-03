@@ -41,11 +41,14 @@ const limiter = rateLimit({
 });
 app.use("/api", limiter);
 
+const admin = require('./config/firebase');
+
 app.get("/api/health", (req, res) => {
   res.json({
     success: true,
     message: "ColdFlyer API is running",
     timestamp: new Date().toISOString(),
+    firebaseConfigured: admin.apps.length > 0,
   });
 });
 

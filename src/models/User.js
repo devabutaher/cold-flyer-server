@@ -36,7 +36,7 @@ const userSchema = new mongoose.Schema({
   },
   phone: {
     type: String,
-    required: [true, 'Phone is required'],
+    default: '',
     trim: true,
   },
   password: {
@@ -47,8 +47,8 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['customer', 'technician', 'manager', 'admin'],
-    default: 'customer',
+    enum: ['user', 'admin'],
+    default: 'user',
   },
   avatar: {
     type: String,

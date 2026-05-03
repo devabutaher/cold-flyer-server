@@ -10,7 +10,7 @@ const {
 } = require('../controllers/admin.controller');
 
 router.use(authenticate);
-router.use(authorize('admin', 'manager'));
+router.use(authorize('admin'));
 
 router.get('/dashboard', getDashboard);
 router.get('/analytics', getAnalytics);

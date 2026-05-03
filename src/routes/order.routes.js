@@ -8,8 +8,8 @@ router.post('/', authenticate, createOrder);
 router.get('/', authenticate, getOrders);
 router.get('/:id', authenticate, getOrderById);
 
-router.patch('/:id/status', authenticate, authorize('manager', 'admin'), updateOrderStatus);
-router.patch('/:id/confirm', authenticate, authorize('manager', 'admin'), confirmOrder);
+router.patch('/:id/status', authenticate, authorize('admin'), updateOrderStatus);
+router.patch('/:id/confirm', authenticate, authorize('admin'), confirmOrder);
 router.patch('/:id/cancel', authenticate, cancelOrder);
 
 module.exports = router;

@@ -21,9 +21,9 @@ router.get('/categories', getCategories);
 router.get('/:id/reviews', getProductReviews);
 router.post('/:id/reviews', authenticate, addReview);
 
-router.post('/', authenticate, authorize('manager', 'admin'), createProduct);
-router.patch('/:id', authenticate, authorize('manager', 'admin'), updateProduct);
-router.delete('/:id', authenticate, authorize('manager', 'admin'), deleteProduct);
-router.patch('/:id/stock', authenticate, authorize('manager', 'admin'), updateStock);
+router.post('/', authenticate, authorize('admin'), createProduct);
+router.patch('/:id', authenticate, authorize('admin'), updateProduct);
+router.delete('/:id', authenticate, authorize('admin'), deleteProduct);
+router.patch('/:id/stock', authenticate, authorize('admin'), updateStock);
 
 module.exports = router;

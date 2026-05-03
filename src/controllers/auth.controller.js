@@ -3,34 +3,63 @@ const Cart = require('../models/Cart');
 const ApiError = require('../utils/ApiError');
 const catchAsync = require('../utils/catchAsync');
 const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = require('../utils/generateToken');
-const { sendVerificationEmail, sendPasswordResetEmail } = require('../services/email.service');
+const admin = require('../config/firebase');
 
-const crypto = require('crypto');
+const isAdminEmail = (email) => {
+  const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase());
+  return adminEmails.includes(email.toLowerCase());
+};
 
-const register = catchAsync(async (req, res) => {
-  const { name, email, phone, password } = req.body;
+const verifyFirebaseToken = async (idToken) => {
+  try {
+    if (!admin.apps.length) {
+      throw ApiError.internal('Firebase not configured on server');
+    }
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    return decodedToken;
+  } catch (error) {
+    console.error('Firebase token verification error:', error.code, error.message);
+    throw ApiError.unauthorized('Invalid Firebase token');
+  }
+};
 
-  const existingUser = await User.findOne({ $or: [{ email }, { phone }] });
-  if (existingUser) {
-    throw ApiError.conflict('User with this email or phone already exists');
+const registerWithFirebase = catchAsync(async (req, res) => {
+  const { firebaseToken } = req.body;
+
+  if (!firebaseToken) {
+    throw ApiError.badRequest('Firebase token is required');
   }
 
-  const user = await User.create({ name, email, phone, password });
+  const decodedToken = await verifyFirebaseToken(firebaseToken);
+  const { uid, email, name, picture } = decodedToken;
 
-  const verificationToken = crypto.randomBytes(32).toString('hex');
-  user.emailVerificationToken = verificationToken;
-  await user.save();
+  let user = await User.findOne({ email });
+
+  if (user) {
+    throw ApiError.conflict('User already exists');
+  }
+
+  const role = isAdminEmail(email) ? 'admin' : 'user';
+
+  user = await User.create({
+    name: name || email.split('@')[0],
+    email,
+    phone: '',
+    password: uid,
+    avatar: picture || null,
+    role,
+    isEmailVerified: true,
+  });
 
   const cart = await Cart.create({ user: user._id, items: [] });
   user.cart = cart._id;
   await user.save();
 
-  await sendVerificationEmail(email, name, verificationToken);
-
   const accessToken = generateAccessToken(user);
   const refreshToken = generateRefreshToken(user);
 
   user.refreshTokens.push(refreshToken);
+  user.lastLogin = new Date();
   await user.save();
 
   res.cookie('refreshToken', refreshToken, {
@@ -50,18 +79,42 @@ const register = catchAsync(async (req, res) => {
         email: user.email,
         phone: user.phone,
         role: user.role,
+        avatar: user.avatar,
       },
       accessToken,
     },
   });
 });
 
-const login = catchAsync(async (req, res) => {
-  const { email, password } = req.body;
+const loginWithFirebase = catchAsync(async (req, res) => {
+  const { firebaseToken } = req.body;
 
-  const user = await User.findOne({ email }).select('+password');
-  if (!user || !(await user.comparePassword(password))) {
-    throw ApiError.unauthorized('Invalid email or password');
+  if (!firebaseToken) {
+    throw ApiError.badRequest('Firebase token is required');
+  }
+
+  const decodedToken = await verifyFirebaseToken(firebaseToken);
+  const { uid, email, name, picture } = decodedToken;
+
+  let user = await User.findOne({ email });
+
+  if (!user) {
+    // Check if email is in admin list
+    const role = isAdminEmail(email) ? 'admin' : 'user';
+    
+    user = await User.create({
+      name: name || email.split('@')[0],
+      email,
+      phone: '',
+      password: uid,
+      avatar: picture || null,
+      role,
+      isEmailVerified: true,
+    });
+
+    const cart = await Cart.create({ user: user._id, items: [] });
+    user.cart = cart._id;
+    await user.save();
   }
 
   if (!user.isActive) {
@@ -71,10 +124,12 @@ const login = catchAsync(async (req, res) => {
   const accessToken = generateAccessToken(user);
   const refreshToken = generateRefreshToken(user);
 
-  user.lastLogin = new Date();
-  user.refreshTokens = user.refreshTokens.slice(-4);
-  user.refreshTokens.push(refreshToken);
-  await user.save();
+  // Use findOneAndUpdate to avoid version conflicts
+  await User.findByIdAndUpdate(user._id, {
+    $push: { refreshTokens: refreshToken },
+    $set: { lastLogin: new Date() },
+    $inc: { tokenVersion: 1 }
+  });
 
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
@@ -149,72 +204,6 @@ const refreshToken = catchAsync(async (req, res) => {
   });
 });
 
-const verifyEmail = catchAsync(async (req, res) => {
-  const { token } = req.body;
-
-  const user = await User.findOne({ emailVerificationToken: token });
-  if (!user) {
-    throw ApiError.badRequest('Invalid verification token');
-  }
-
-  user.isEmailVerified = true;
-  user.emailVerificationToken = undefined;
-  await user.save();
-
-  res.json({
-    success: true,
-    message: 'Email verified successfully',
-  });
-});
-
-const forgotPassword = catchAsync(async (req, res) => {
-  const { email } = req.body;
-
-  const user = await User.findOne({ email });
-  if (!user) {
-    return res.json({
-      success: true,
-      message: 'If the email exists, a reset link will be sent',
-    });
-  }
-
-  const resetToken = crypto.randomBytes(32).toString('hex');
-  user.passwordResetToken = resetToken;
-  user.passwordResetExpires = Date.now() + 3600000;
-  await user.save();
-
-  await sendPasswordResetEmail(email, user.name, resetToken);
-
-  res.json({
-    success: true,
-    message: 'If the email exists, a reset link will be sent',
-  });
-});
-
-const resetPassword = catchAsync(async (req, res) => {
-  const { token, password } = req.body;
-
-  const user = await User.findOne({
-    passwordResetToken: token,
-    passwordResetExpires: { $gt: Date.now() },
-  });
-
-  if (!user) {
-    throw ApiError.badRequest('Invalid or expired reset token');
-  }
-
-  user.password = password;
-  user.passwordResetToken = undefined;
-  user.passwordResetExpires = undefined;
-  user.refreshTokens = [];
-  await user.save();
-
-  res.json({
-    success: true,
-    message: 'Password reset successful',
-  });
-});
-
 const changePassword = catchAsync(async (req, res) => {
   const { currentPassword, newPassword } = req.body;
 
@@ -245,13 +234,10 @@ const getMe = catchAsync(async (req, res) => {
 });
 
 module.exports = {
-  register,
-  login,
+  registerWithFirebase,
+  loginWithFirebase,
   logout,
   refreshToken,
-  verifyEmail,
-  forgotPassword,
-  resetPassword,
   changePassword,
   getMe,
 };
