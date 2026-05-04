@@ -16,6 +16,7 @@ const paymentRoutes = require("./routes/payment.routes");
 const adminRoutes = require("./routes/admin.routes");
 
 const app = express();
+
 app.use(helmet());
 
 app.use(
@@ -52,7 +53,6 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
-app.use("/api/upload", require("./routes/upload.routes"));
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/cart", cartRoutes);
@@ -61,6 +61,8 @@ app.use("/api/shops", shopRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/upload", require("./routes/upload.routes"));
+app.use("/api/payments/webhook", require("./routes/payment.routes"));
 
 app.use((req, res) => {
   res

@@ -1,5 +1,4 @@
 const Order = require('../models/Order');
-const Product = require('../models/Product');
 const ApiError = require('../utils/ApiError');
 const catchAsync = require('../utils/catchAsync');
 
@@ -49,9 +48,7 @@ const createCheckoutSession = catchAsync(async (req, res) => {
     lineItems.push({
       price_data: {
         currency: 'bdt',
-        product_data: {
-          name: 'Shipping',
-        },
+        product_data: { name: 'Shipping' },
         unit_amount: Math.round(order.shippingCost * 100),
       },
       quantity: 1,
@@ -62,49 +59,72 @@ const createCheckoutSession = catchAsync(async (req, res) => {
     lineItems.push({
       price_data: {
         currency: 'bdt',
-        product_data: {
-          name: 'Tax (8%)',
-        },
+        product_data: { name: 'Tax (8%)' },
         unit_amount: Math.round(order.tax * 100),
       },
       quantity: 1,
     });
   }
 
-  try {
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: lineItems,
-      mode: 'payment',
-      customer_email: req.user.email,
-      success_url: `${process.env.FRONTEND_URL}/order/${order._id}?payment=success`,
-      cancel_url: `${process.env.FRONTEND_URL}/cart`,
-      metadata: {
-        orderId: order._id.toString(),
-        userId: req.user._id.toString(),
-      },
-    });
+  const session = await stripe.checkout.sessions.create({
+    payment_method_types: ['card'],
+    line_items: lineItems,
+    mode: 'payment',
+    customer_email: req.user.email,
+    success_url: `${process.env.FRONTEND_URL}/order/${order._id}?success=true`,
+    cancel_url: `${process.env.FRONTEND_URL}/cart`,
+    metadata: {
+      orderId: order._id.toString(),
+      userId: req.user._id.toString(),
+    },
+  });
 
-    res.json({
-      success: true,
-      data: {
-        orderId: order._id,
-        checkoutUrl: session.url,
-        sessionId: session.id,
-      },
-    });
-  } catch (stripeError) {
-    console.error('Stripe error:', stripeError.message);
-    // Return order without redirect - let frontend handle
-    res.json({
-      success: true,
-      data: {
-        orderId: order._id,
-        checkoutUrl: null,
-        message: 'Order created. Payment pending.',
-      },
-    });
-  }
+  res.json({
+    success: true,
+    data: {
+      orderId: order._id,
+      checkoutUrl: session.url,
+      sessionId: session.id,
+    },
+  });
 });
 
-module.exports = { createCheckoutSession };
+const verifyPayment = catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  const order = await Order.findById(id);
+  if (!order) {
+    throw ApiError.notFound('Order not found');
+  }
+
+  if (order.user.toString() !== req.user._id.toString()) {
+    throw ApiError.forbidden('Not authorized');
+  }
+
+  if (order.paymentStatus === 'paid') {
+    return res.json({
+      success: true,
+      message: 'Order already paid',
+      data: { order },
+    });
+  }
+
+  order.paymentStatus = 'paid';
+  order.status = 'confirmed';
+  order.paidAt = new Date();
+  order.statusHistory.push({
+    status: 'paid',
+    timestamp: new Date(),
+    note: 'Payment completed successfully',
+  });
+
+  await order.save();
+
+  res.json({
+    success: true,
+    message: 'Payment verified successfully',
+    data: { order },
+  });
+});
+
+module.exports = { createCheckoutSession, verifyPayment };
