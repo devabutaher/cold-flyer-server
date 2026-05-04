@@ -43,7 +43,6 @@ const getProducts = catchAsync(async (req, res) => {
   if (sortBy === 'popular') sort = { totalSold: -1 };
 
   const products = await Product.find(query)
-    .populate('shop', 'name slug')
     .sort(sort)
     .skip((page - 1) * limit)
     .limit(parseInt(limit));
@@ -61,10 +60,7 @@ const getProducts = catchAsync(async (req, res) => {
 const getProductBySlug = catchAsync(async (req, res) => {
   const { slug } = req.params;
 
-  const product = await Product.findOne({ slug, isActive: true })
-    .populate('shop', 'name slug contact')
-    .populate('createdBy', 'name')
-    .populate('updatedBy', 'name');
+  const product = await Product.findOne({ slug, isActive: true });
 
   if (!product) {
     throw ApiError.notFound('Product not found');

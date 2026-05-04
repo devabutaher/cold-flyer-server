@@ -64,6 +64,15 @@ const productSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.Mixed,
   },
   warranty: String,
+  tag: {
+    type: String,
+    enum: ['Sale', 'New', 'Hot', 'Featured', null],
+    default: null,
+  },
+  onSale: {
+    type: Boolean,
+    default: false,
+  },
   isActive: {
     type: Boolean,
     default: true,
