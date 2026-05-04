@@ -72,6 +72,21 @@ const getProductBySlug = catchAsync(async (req, res) => {
   });
 });
 
+const getProductById = catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  const product = await Product.findOne({ _id: id, isActive: true });
+
+  if (!product) {
+    throw ApiError.notFound('Product not found');
+  }
+
+  res.json({
+    success: true,
+    data: { product },
+  });
+});
+
 const getFeaturedProducts = catchAsync(async (req, res) => {
   const { limit = 10 } = req.query;
 
@@ -283,6 +298,7 @@ const addReview = catchAsync(async (req, res) => {
 module.exports = {
   getProducts,
   getProductBySlug,
+  getProductById,
   getFeaturedProducts,
   getBestSellers,
   getNewArrivals,

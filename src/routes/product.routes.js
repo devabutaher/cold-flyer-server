@@ -4,7 +4,7 @@ const { authenticate } = require('../middleware/auth.middleware');
 const { authorize } = require('../middleware/role.middleware');
 const { uploadSingle } = require('../middleware/upload.middleware');
 const {
-  getProducts, getProductBySlug, getFeaturedProducts, getBestSellers,
+  getProducts, getProductBySlug, getProductById, getFeaturedProducts, getBestSellers,
   getNewArrivals, getOnSale, getCategories,
   createProduct, updateProduct, deleteProduct, updateStock,
   getProductReviews, addReview
@@ -17,6 +17,7 @@ router.get('/best-sellers', getBestSellers);
 router.get('/new-arrivals', getNewArrivals);
 router.get('/on-sale', getOnSale);
 router.get('/categories', getCategories);
+router.get('/:id', getProductById);
 
 router.get('/:id/reviews', getProductReviews);
 router.post('/:id/reviews', authenticate, addReview);
