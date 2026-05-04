@@ -7,44 +7,60 @@ const catchAsync = require('../utils/catchAsync');
 const { createOrderNotification } = require('../services/notification.service');
 
 const createOrder = catchAsync(async (req, res) => {
-  const { items, shippingAddress, billingAddress, paymentMethod, isPickup, pickupShop, notes, couponCode } = req.body;
+  const { items: requestItems, shippingAddress, billingAddress, paymentMethod, isPickup, pickupShop, notes, couponCode } = req.body;
 
-  const cart = await Cart.findOne({ user: req.user._id }).populate('items.product');
+  let cart = await Cart.findOne({ user: req.user._id }).populate('items.product');
+  
+  const itemsToProcess = (requestItems && requestItems.length > 0) 
+    ? requestItems 
+    : (cart && cart.items && cart.items.length > 0) 
+      ? cart.items 
+      : [];
 
-  if (!cart || cart.items.length === 0) {
+  if (!itemsToProcess || itemsToProcess.length === 0) {
     throw ApiError.badRequest('Cart is empty');
   }
 
   let orderItems = [];
   let subtotal = 0;
 
-  for (const item of cart.items) {
-    const product = await Product.findById(item.product._id);
-
+  for (const item of itemsToProcess) {
+    let productId = item.product?._id || item.product || item.productId;
+    
+    if (!productId) {
+      throw ApiError.badRequest(`Invalid product ID: ${item.name || item.productId}`);
+    }
+    
+    let product = await Product.findById(productId);
+    if (!product && productId) {
+      product = await Product.findOne({ slug: productId });
+    }
+    
     if (!product || !product.isActive) {
-      throw ApiError.badRequest(`Product ${item.name} is no longer available`);
+      throw ApiError.badRequest(`Product ${item.name || item.productId} is no longer available`);
     }
 
-    if (product.stock < item.quantity) {
-      throw ApiError.badRequest(`Insufficient stock for ${item.name}`);
+    const qty = item.quantity;
+    if (product.stock < qty) {
+      throw ApiError.badRequest(`Insufficient stock for ${product.name}`);
     }
 
-    const itemTotal = product.price * item.quantity;
+    const itemTotal = product.price * qty;
     orderItems.push({
       product: product._id,
       shop: product.shop,
       name: product.name,
       sku: product.sku,
-      image: product.images[0]?.url,
+      image: product.images?.[0]?.url,
       price: product.price,
-      quantity: item.quantity,
+      quantity: qty,
       total: itemTotal,
     });
 
     subtotal += itemTotal;
 
-    product.stock -= item.quantity;
-    product.totalSold += item.quantity;
+    product.stock -= qty;
+    product.totalSold = (product.totalSold || 0) + qty;
     await product.save();
   }
 
@@ -84,10 +100,13 @@ const createOrder = catchAsync(async (req, res) => {
   const tax = (subtotal - discount) * 0.08;
   const total = subtotal - discount + shippingCost + tax;
 
+  const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+
   const order = await Order.create({
+    orderNumber,
     user: req.user._id,
     items: orderItems,
-    itemCount: cart.itemCount,
+    itemCount: orderItems.reduce((sum, i) => sum + i.quantity, 0),
     subtotal,
     discount,
     couponDiscount: discount,
@@ -104,7 +123,9 @@ const createOrder = catchAsync(async (req, res) => {
     source: 'website',
   });
 
-  await Cart.findByIdAndUpdate(cart._id, { items: [], subtotal: 0, itemCount: 0 });
+  if (cart && cart._id) {
+    await Cart.findByIdAndUpdate(cart._id, { items: [], subtotal: 0, itemCount: 0 });
+  }
 
   req.user.orders.push(order._id);
   await req.user.save();
