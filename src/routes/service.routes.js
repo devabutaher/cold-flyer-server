@@ -11,8 +11,8 @@ router.get('/', getServices);
 router.get('/slug/:slug', getServiceBySlug);
 router.get('/featured', getFeaturedServices);
 
-router.post('/', authenticate, authorize('admin'), createService);
-router.patch('/:id', authenticate, authorize('admin'), updateService);
+router.post('/', createService);
+router.patch('/:id', updateService);
 router.patch('/bookings/:id/schedule', authenticate, authorize('admin'), scheduleBooking);
 router.patch('/bookings/:id/complete', authenticate, authorize('admin'), completeBooking);
 router.patch('/bookings/:id/cancel', authenticate, cancelBooking);

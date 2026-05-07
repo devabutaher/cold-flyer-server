@@ -5,17 +5,15 @@ const catchAsync = require('../utils/catchAsync');
 const { createServiceNotification } = require('../services/notification.service');
 
 const getServices = catchAsync(async (req, res) => {
-  const { category, serviceType, featured, page = 1, limit = 20 } = req.query;
+  const { category, serviceType, page = 1, limit = 20 } = req.query;
 
-  const query = { isActive: true };
+  const query = {};
 
   if (category) query.category = category;
   if (serviceType) query.serviceType = serviceType;
-  if (featured === 'true') query.isFeatured = true;
 
   const services = await Service.find(query)
-    .populate('shop', 'name slug')
-    .sort({ rating: -1 })
+    .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(parseInt(limit));
 
@@ -31,8 +29,7 @@ const getServices = catchAsync(async (req, res) => {
 const getServiceBySlug = catchAsync(async (req, res) => {
   const { slug } = req.params;
 
-  const service = await Service.findOne({ slug, isActive: true })
-    .populate('shop', 'name slug contact address');
+  const service = await Service.findOne({ slug });
 
   if (!service) {
     throw ApiError.notFound('Service not found');
@@ -45,8 +42,7 @@ const getServiceBySlug = catchAsync(async (req, res) => {
 });
 
 const getFeaturedServices = catchAsync(async (req, res) => {
-  const services = await Service.find({ isFeatured: true, isActive: true })
-    .populate('shop', 'name slug')
+  const services = await Service.find({ isFeatured: true })
     .limit(10);
 
   res.json({
@@ -56,11 +52,7 @@ const getFeaturedServices = catchAsync(async (req, res) => {
 });
 
 const createService = catchAsync(async (req, res) => {
-  const service = await Service.create({
-    ...req.body,
-    shop: req.user.shop,
-    createdBy: req.user._id,
-  });
+  const service = await Service.create(req.body);
 
   res.status(201).json({
     success: true,
@@ -96,7 +88,6 @@ const createBooking = catchAsync(async (req, res) => {
   const booking = await ServiceBooking.create({
     user: req.user._id,
     service,
-    shop: serviceData.shop,
     items: [{ service, name: serviceData.name, price: serviceData.basePrice, quantity: 1 }],
     subtotal: serviceData.basePrice,
     total: serviceData.basePrice,
