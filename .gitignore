@@ -3,6 +3,9 @@
 .env.local
 .env.*.local
 
+# Firebase (use env var instead - see .env.example)
+firebase-service-account.json
+
 # Dependencies
 node_modules/
 
