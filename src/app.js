@@ -21,7 +21,11 @@ app.use(helmet());
 
 // CRITICAL: Webhook must be FIRST - before ANY body parsing
 // Use express.raw() - Stripe webhook needs EXACT raw body
-app.use("/api/payments/webhook", express.raw({ type: 'application/json' }), require("./routes/payment.routes"));
+app.use(
+  "/api/payments/webhook",
+  express.raw({ type: "application/json" }),
+  require("./routes/payment.routes"),
+);
 
 app.use(
   cors({
@@ -46,12 +50,16 @@ app.use("/api", limiter);
 
 const admin = require("./config/firebase");
 
+const mongoose = require("mongoose");
+
 app.get("/api/health", (req, res) => {
+  const isDbConnected = mongoose.connection.readyState === 1;
   res.json({
     success: true,
     message: "ColdFlyer API is running",
     timestamp: new Date().toISOString(),
     firebaseConfigured: admin.apps.length > 0,
+    databaseConnected: isDbConnected,
   });
 });
 
