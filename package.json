@@ -2,7 +2,7 @@
   "name": "cold-flyer-server",
   "version": "1.0.0",
   "description": "ColdFlyer HVAC E-commerce Backend API",
-  "main": "src/app.js",
+  "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
     "dev": "node src/server.js",
