@@ -21,10 +21,10 @@ app.use(helmet());
 
 // CRITICAL: Webhook must be FIRST - before ANY body parsing
 // Use express.raw() - Stripe webhook needs EXACT raw body
-app.use(
+app.post(
   "/api/payments/webhook",
   express.raw({ type: "application/json" }),
-  require("./routes/payment.routes"),
+  paymentRoutes.webhookHandler
 );
 
 app.use(

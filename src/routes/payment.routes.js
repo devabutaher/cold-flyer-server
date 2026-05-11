@@ -75,3 +75,4 @@ const webhookHandler = async (req, res) => {
 router.post('/webhook', webhookHandler);
 
 module.exports = router;
+module.exports.webhookHandler = webhookHandler;

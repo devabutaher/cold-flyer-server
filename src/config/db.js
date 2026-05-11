@@ -1,28 +1,21 @@
 const mongoose = require("mongoose");
 
-mongoose.set("bufferTimeoutMS", 30000);
-
 let isConnected = false;
 
 const connectDB = async () => {
-  if (isConnected) {
-    console.log("Using existing DB connection");
-    return;
-  }
-  
-  console.log("Attempting DB connection...");
+  if (isConnected) return;
   
   try {
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 25000,
-      socketTimeoutMS: 25000,
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 4500,
     });
 
     isConnected = true;
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
-    console.error("Database connection failed:", error.message);
-    console.log("App will continue without database");
+    console.error("DB connection error:", error.message);
   }
   
   return true;

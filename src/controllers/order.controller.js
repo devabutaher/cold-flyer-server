@@ -1,24 +1,36 @@
-const Order = require('../models/Order');
-const Product = require('../models/Product');
-const Cart = require('../models/Cart');
-const Coupon = require('../models/Coupon');
-const ApiError = require('../utils/ApiError');
-const catchAsync = require('../utils/catchAsync');
-const { createOrderNotification } = require('../services/notification.service');
+const Order = require("../models/Order");
+const Product = require("../models/Product");
+const Cart = require("../models/Cart");
+const Coupon = require("../models/Coupon");
+const ApiError = require("../utils/ApiError");
+const catchAsync = require("../utils/catchAsync");
+const { createOrderNotification } = require("../services/notification.service");
 
 const createOrder = catchAsync(async (req, res) => {
-  const { items: requestItems, shippingAddress, billingAddress, paymentMethod, isPickup, pickupShop, notes, couponCode } = req.body;
+  const {
+    items: requestItems,
+    shippingAddress,
+    billingAddress,
+    paymentMethod,
+    isPickup,
+    pickupShop,
+    notes,
+    couponCode,
+  } = req.body;
 
-  let cart = await Cart.findOne({ user: req.user._id }).populate('items.product');
-  
-  const itemsToProcess = (requestItems && requestItems.length > 0) 
-    ? requestItems 
-    : (cart && cart.items && cart.items.length > 0) 
-      ? cart.items 
-      : [];
+  let cart = await Cart.findOne({ user: req.user._id }).populate(
+    "items.product",
+  );
+
+  const itemsToProcess =
+    requestItems && requestItems.length > 0
+      ? requestItems
+      : cart && cart.items && cart.items.length > 0
+        ? cart.items
+        : [];
 
   if (!itemsToProcess || itemsToProcess.length === 0) {
-    throw ApiError.badRequest('Cart is empty');
+    throw ApiError.badRequest("Cart is empty");
   }
 
   let orderItems = [];
@@ -26,18 +38,22 @@ const createOrder = catchAsync(async (req, res) => {
 
   for (const item of itemsToProcess) {
     let productId = item.product?._id || item.product || item.productId;
-    
+
     if (!productId) {
-      throw ApiError.badRequest(`Invalid product ID: ${item.name || item.productId}`);
+      throw ApiError.badRequest(
+        `Invalid product ID: ${item.name || item.productId}`,
+      );
     }
-    
+
     let product = await Product.findById(productId);
     if (!product && productId) {
       product = await Product.findOne({ slug: productId });
     }
-    
+
     if (!product || !product.isActive) {
-      throw ApiError.badRequest(`Product ${item.name || item.productId} is no longer available`);
+      throw ApiError.badRequest(
+        `Product ${item.name || item.productId} is no longer available`,
+      );
     }
 
     const qty = item.quantity;
@@ -76,12 +92,12 @@ const createOrder = catchAsync(async (req, res) => {
     });
 
     if (coupon && subtotal >= coupon.minOrderValue) {
-      if (coupon.discountType === 'percentage') {
+      if (coupon.discountType === "percentage") {
         discount = (subtotal * coupon.discountValue) / 100;
         if (coupon.maxDiscount && discount > coupon.maxDiscount) {
           discount = coupon.maxDiscount;
         }
-      } else if (coupon.discountType === 'fixed') {
+      } else if (coupon.discountType === "fixed") {
         discount = coupon.discountValue;
       }
 
@@ -96,7 +112,7 @@ const createOrder = catchAsync(async (req, res) => {
     }
   }
 
-  const shippingCost = isPickup ? 0 : (subtotal > 100 ? 0 : 10);
+  const shippingCost = isPickup ? 0 : subtotal > 100 ? 0 : 10;
   const tax = (subtotal - discount) * 0.08;
   const total = subtotal - discount + shippingCost + tax;
 
@@ -116,15 +132,19 @@ const createOrder = catchAsync(async (req, res) => {
     total: Math.round(total * 100) / 100,
     shippingAddress,
     billingAddress,
-    paymentMethod: paymentMethod || 'card',
+    paymentMethod: paymentMethod || "card",
     isPickup: isPickup || false,
     pickupShop,
     notes,
-    source: 'website',
+    source: "website",
   });
 
   if (cart && cart._id) {
-    await Cart.findByIdAndUpdate(cart._id, { items: [], subtotal: 0, itemCount: 0 });
+    await Cart.findByIdAndUpdate(cart._id, {
+      items: [],
+      subtotal: 0,
+      itemCount: 0,
+    });
   }
 
   req.user.orders.push(order._id);
@@ -132,22 +152,32 @@ const createOrder = catchAsync(async (req, res) => {
 
   res.status(201).json({
     success: true,
-    message: 'Order created successfully',
+    message: "Order created successfully",
     data: { order },
   });
 });
 
 const getOrders = catchAsync(async (req, res) => {
-  const { status, paymentStatus, fromDate, toDate, page = 1, limit = 20 } = req.query;
+  const {
+    status,
+    paymentStatus,
+    fromDate,
+    toDate,
+    page = 1,
+    limit = 20,
+  } = req.query;
 
   let query = {};
 
   // Admin can see all orders, customers see only their orders
-  if (req.user.role === 'admin' || req.user.role === 'superadmin') {
+  if (req.user.role === "admin" || req.user.role === "superadmin") {
     // No filter - show all orders
-  } else if (req.user.role === 'user' || req.user.role === 'customer') {
+  } else if (req.user.role === "user" || req.user.role === "customer") {
     query.user = req.user._id;
-  } else if (['manager', 'technician'].includes(req.user.role) && req.user.shop) {
+  } else if (
+    ["manager", "technician"].includes(req.user.role) &&
+    req.user.shop
+  ) {
     query.items = { $elemMatch: { shop: req.user.shop } };
   }
 
@@ -160,7 +190,7 @@ const getOrders = catchAsync(async (req, res) => {
   }
 
   const orders = await Order.find(query)
-    .populate('user', 'name email phone')
+    .populate("user", "name email phone")
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(parseInt(limit));
@@ -170,7 +200,12 @@ const getOrders = catchAsync(async (req, res) => {
   res.json({
     success: true,
     data: { orders },
-    meta: { page: parseInt(page), limit: parseInt(limit), total, totalPages: Math.ceil(total / limit) },
+    meta: {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
   });
 });
 
@@ -178,30 +213,25 @@ const getOrderById = catchAsync(async (req, res) => {
   const { id } = req.params;
 
   const order = await Order.findById(id)
-    .populate('user', 'name email phone')
-    .populate('items.product');
+    .populate("user", "name email phone")
+    .populate("items.product");
 
   if (!order) {
-    throw ApiError.notFound('Order not found');
+    throw ApiError.notFound("Order not found");
   }
-
-  console.log('[getOrderById] Order:', order._id, 'User:', order.user);
-  console.log('[getOrderById] Req User:', req.user?._id, 'Role:', req.user?.role);
 
   // Must be logged in
   if (!req.user) {
-    throw ApiError.unauthorized('Please login to view this order');
+    throw ApiError.unauthorized("Please login to view this order");
   }
-  
+
   // Get the user ID as a string (handle both populated and non-populated cases)
   const userId = req.user._id.toString();
   const orderUserId = order.user?._id?.toString() || order.user?.toString();
-  
-  console.log('[getOrderById] Order userId:', orderUserId, 'Request userId:', userId);
-  
+
   // Allow if: order has no user (guest order), OR user owns the order, OR user is admin
-  if (orderUserId && userId !== orderUserId && req.user.role !== 'admin') {
-    throw ApiError.forbidden('You do not have permission to view this order');
+  if (orderUserId && userId !== orderUserId && req.user.role !== "admin") {
+    throw ApiError.forbidden("You do not have permission to view this order");
   }
 
   res.json({
@@ -216,7 +246,7 @@ const updateOrderStatus = catchAsync(async (req, res) => {
 
   const order = await Order.findById(id);
   if (!order) {
-    throw ApiError.notFound('Order not found');
+    throw ApiError.notFound("Order not found");
   }
 
   order.status = status;
@@ -227,7 +257,7 @@ const updateOrderStatus = catchAsync(async (req, res) => {
     updatedBy: req.user._id,
   });
 
-  if (status === 'delivered') {
+  if (status === "delivered") {
     order.deliveredAt = new Date();
   }
 
@@ -237,7 +267,7 @@ const updateOrderStatus = catchAsync(async (req, res) => {
 
   res.json({
     success: true,
-    message: 'Order status updated',
+    message: "Order status updated",
     data: { order },
   });
 });
@@ -248,16 +278,16 @@ const cancelOrder = catchAsync(async (req, res) => {
 
   const order = await Order.findById(id);
   if (!order) {
-    throw ApiError.notFound('Order not found');
+    throw ApiError.notFound("Order not found");
   }
 
-  if (['delivered', 'cancelled', 'refunded'].includes(order.status)) {
-    throw ApiError.badRequest('Cannot cancel this order');
+  if (["delivered", "cancelled", "refunded"].includes(order.status)) {
+    throw ApiError.badRequest("Cannot cancel this order");
   }
 
-  order.status = 'cancelled';
+  order.status = "cancelled";
   order.statusHistory.push({
-    status: 'cancelled',
+    status: "cancelled",
     timestamp: new Date(),
     note: reason,
     updatedBy: req.user._id,
@@ -273,7 +303,7 @@ const cancelOrder = catchAsync(async (req, res) => {
 
   res.json({
     success: true,
-    message: 'Order cancelled successfully',
+    message: "Order cancelled successfully",
   });
 });
 
@@ -282,14 +312,14 @@ const confirmOrder = catchAsync(async (req, res) => {
 
   const order = await Order.findById(id);
   if (!order) {
-    throw ApiError.notFound('Order not found');
+    throw ApiError.notFound("Order not found");
   }
 
-  order.status = 'confirmed';
+  order.status = "confirmed";
   order.statusHistory.push({
-    status: 'confirmed',
+    status: "confirmed",
     timestamp: new Date(),
-    note: 'Order confirmed',
+    note: "Order confirmed",
     updatedBy: req.user._id,
   });
 
@@ -297,7 +327,7 @@ const confirmOrder = catchAsync(async (req, res) => {
 
   res.json({
     success: true,
-    message: 'Order confirmed',
+    message: "Order confirmed",
     data: { order },
   });
 });
