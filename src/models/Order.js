@@ -48,16 +48,13 @@ const orderSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
   },
   items: [orderItemSchema],
   itemCount: {
     type: Number,
-    required: true,
   },
   subtotal: {
     type: Number,
-    required: true,
   },
   discount: {
     type: Number,
@@ -82,7 +79,6 @@ const orderSchema = new mongoose.Schema({
   },
   total: {
     type: Number,
-    required: true,
   },
   currency: {
     type: String,
@@ -104,8 +100,10 @@ const orderSchema = new mongoose.Schema({
     default: 'card',
   },
   paymentId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Payment',
+    type: String,
+  },
+  stripeSessionId: {
+    type: String,
   },
   billingAddress: {
     fullName: String,

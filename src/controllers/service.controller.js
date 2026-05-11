@@ -9,8 +9,8 @@ const getServices = catchAsync(async (req, res) => {
 
   const query = {};
 
-  if (category) query.category = category;
-  if (serviceType) query.serviceType = serviceType;
+  if (category) query.category = { $regex: new RegExp(`^${category}$`, 'i') };
+  if (serviceType) query.serviceType = { $regex: new RegExp(`^${serviceType}$`, 'i') };
 
   const services = await Service.find(query)
     .sort({ createdAt: -1 })
@@ -29,7 +29,30 @@ const getServices = catchAsync(async (req, res) => {
 const getServiceBySlug = catchAsync(async (req, res) => {
   const { slug } = req.params;
 
-  const service = await Service.findOne({ slug });
+  // Try to find by slug first
+  let service = await Service.findOne({ slug });
+  
+  // If not found and looks like an ObjectId, try by ID
+  if (!service && slug.match(/^[0-9a-f]{24}$/)) {
+    service = await Service.findById(slug);
+  }
+
+  if (!service) {
+    throw ApiError.notFound('Service not found');
+  }
+
+  res.json({
+    success: true,
+    data: { service },
+  });
+});
+
+const getServiceById = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  console.log('[getServiceById] Looking for service id:', id);
+
+  const service = await Service.findById(id);
+  console.log('[getServiceById] Found:', service?.name || 'NOT FOUND');
 
   if (!service) {
     throw ApiError.notFound('Service not found');
@@ -265,12 +288,29 @@ const cancelBooking = catchAsync(async (req, res) => {
   });
 });
 
+const deleteService = catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  const service = await Service.findByIdAndDelete(id);
+
+  if (!service) {
+    throw ApiError.notFound('Service not found');
+  }
+
+  res.json({
+    success: true,
+    message: 'Service deleted successfully',
+  });
+});
+
 module.exports = {
   getServices,
   getServiceBySlug,
+  getServiceById,
   getFeaturedServices,
   createService,
   updateService,
+  deleteService,
   createBooking,
   getBookings,
   getBookingById,

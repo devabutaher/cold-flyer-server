@@ -66,7 +66,7 @@ const serviceSchema = new mongoose.Schema(
     },
     isFeatured: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     isActive: {
       type: Boolean,

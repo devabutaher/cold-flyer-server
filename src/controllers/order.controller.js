@@ -142,9 +142,12 @@ const getOrders = catchAsync(async (req, res) => {
 
   let query = {};
 
-  if (req.user.role === 'customer') {
+  // Admin can see all orders, customers see only their orders
+  if (req.user.role === 'admin' || req.user.role === 'superadmin') {
+    // No filter - show all orders
+  } else if (req.user.role === 'user' || req.user.role === 'customer') {
     query.user = req.user._id;
-  } else if (['manager', 'admin'].includes(req.user.role) && req.user.shop) {
+  } else if (['manager', 'technician'].includes(req.user.role) && req.user.shop) {
     query.items = { $elemMatch: { shop: req.user.shop } };
   }
 
@@ -176,14 +179,28 @@ const getOrderById = catchAsync(async (req, res) => {
 
   const order = await Order.findById(id)
     .populate('user', 'name email phone')
-    .populate('items.product')
-    .populate('paymentId');
+    .populate('items.product');
 
   if (!order) {
     throw ApiError.notFound('Order not found');
   }
 
-  if (req.user.role === 'customer' && order.user._id.toString() !== req.user._id.toString()) {
+  console.log('[getOrderById] Order:', order._id, 'User:', order.user);
+  console.log('[getOrderById] Req User:', req.user?._id, 'Role:', req.user?.role);
+
+  // Must be logged in
+  if (!req.user) {
+    throw ApiError.unauthorized('Please login to view this order');
+  }
+  
+  // Get the user ID as a string (handle both populated and non-populated cases)
+  const userId = req.user._id.toString();
+  const orderUserId = order.user?._id?.toString() || order.user?.toString();
+  
+  console.log('[getOrderById] Order userId:', orderUserId, 'Request userId:', userId);
+  
+  // Allow if: order has no user (guest order), OR user owns the order, OR user is admin
+  if (orderUserId && userId !== orderUserId && req.user.role !== 'admin') {
     throw ApiError.forbidden('You do not have permission to view this order');
   }
 

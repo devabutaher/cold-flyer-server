@@ -24,7 +24,7 @@ const verifyFirebaseToken = async (idToken) => {
 };
 
 const registerWithFirebase = catchAsync(async (req, res) => {
-  const { firebaseToken } = req.body;
+  const { firebaseToken, phone } = req.body;
 
   if (!firebaseToken) {
     throw ApiError.badRequest('Firebase token is required');
@@ -44,7 +44,7 @@ const registerWithFirebase = catchAsync(async (req, res) => {
   user = await User.create({
     name: name || email.split('@')[0],
     email,
-    phone: '',
+    phone: phone || '',
     password: uid,
     avatar: picture || null,
     role,
@@ -62,11 +62,18 @@ const registerWithFirebase = catchAsync(async (req, res) => {
   user.lastLogin = new Date();
   await user.save();
 
-  res.cookie('refreshToken', refreshToken, {
+res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
     maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  res.cookie("accessToken", accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 15 * 60 * 1000,
   });
 
   res.status(201).json({
@@ -131,11 +138,18 @@ const loginWithFirebase = catchAsync(async (req, res) => {
     $inc: { tokenVersion: 1 }
   });
 
-  res.cookie('refreshToken', refreshToken, {
+res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
     maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  res.cookie('accessToken', accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 15 * 60 * 1000,
   });
 
   res.json({
@@ -164,6 +178,7 @@ const logout = catchAsync(async (req, res) => {
   }
 
   res.clearCookie('refreshToken');
+  res.clearCookie('accessToken');
 
   res.json({
     success: true,

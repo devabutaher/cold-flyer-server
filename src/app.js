@@ -19,6 +19,10 @@ const app = express();
 
 app.use(helmet());
 
+// CRITICAL: Webhook must be FIRST - before ANY body parsing
+// Use express.raw() - Stripe webhook needs EXACT raw body
+app.use("/api/payments/webhook", express.raw({ type: 'application/json' }), require("./routes/payment.routes"));
+
 app.use(
   cors({
     origin: process.env.FRONTEND_URL || "http://localhost:3000",
@@ -62,7 +66,6 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/upload", require("./routes/upload.routes"));
-app.use("/api/payments/webhook", require("./routes/payment.routes"));
 
 app.use((req, res) => {
   res

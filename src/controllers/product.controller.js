@@ -22,8 +22,8 @@ const getProducts = catchAsync(async (req, res) => {
 
   const query = { isActive: true };
 
-  if (category) query.category = category;
-  if (brand) query.brand = brand;
+  if (category) query.category = { $regex: new RegExp(`^${category}$`, 'i') };
+  if (brand) query.brand = { $regex: new RegExp(`^${brand}$`, 'i') };
   if (productType) query.productType = productType;
   if (minPrice || maxPrice) {
     query.price = {};

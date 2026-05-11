@@ -3,52 +3,75 @@ const router = express.Router();
 const Order = require('../models/Order');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
+const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
+
+async function updateOrderPayment(orderId, paymentData) {
+  if (!orderId) {
+    const sessionId = paymentData?.id;
+    const paymentIntentId = paymentData?.payment_intent;
+    
+    let order = null;
+    if (sessionId) order = await Order.findOne({ stripeSessionId: sessionId });
+    if (!order && paymentIntentId) order = await Order.findOne({ paymentId: paymentIntentId });
+    if (!order && sessionId) order = await Order.findOne({ paymentId: sessionId });
+    
+    if (order) orderId = order._id.toString();
+  }
+  
+  if (!orderId) return;
+  
+  const order = await Order.findById(orderId);
+  if (!order) return;
+  
+  if (order.paymentStatus === 'paid') return;
+  
+  order.paymentStatus = 'paid';
+  if (order.status === 'pending') order.status = 'confirmed';
+  order.paymentId = paymentData?.payment_intent || paymentData?.id;
+  order.paidAt = new Date();
+  order.statusHistory = order.statusHistory || [];
+  order.statusHistory.push({ status: 'paid', timestamp: new Date(), note: 'Payment completed via Stripe' });
+  
+  await order.save();
+  console.log('[Webhook] Order', order.orderNumber, 'marked as paid');
+}
+
 const webhookHandler = async (req, res) => {
   const sig = req.headers['stripe-signature'];
   let event;
 
+  if (!WEBHOOK_SECRET) {
+    return res.status(500).json({ error: 'Webhook secret not configured' });
+  }
+
+  let rawBody;
+  if (req.body instanceof Buffer) {
+    rawBody = req.body;
+  } else if (typeof req.body === 'string') {
+    rawBody = req.body;
+  } else if (typeof req.body === 'object') {
+    rawBody = JSON.stringify(req.body);
+  } else {
+    rawBody = String(req.body);
+  }
+
   try {
-    event = stripe.webhooks.constructEvent(
-      req.body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
+    event = stripe.webhooks.constructEvent(rawBody, sig, WEBHOOK_SECRET);
   } catch (err) {
-    console.error('Webhook signature verification failed:', err.message);
+    console.error('[Webhook] Signature error:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object;
-    
-    try {
-      const orderId = session.metadata?.orderId;
-      if (orderId) {
-        const order = await Order.findById(orderId);
-        if (order) {
-          order.paymentStatus = 'paid';
-          order.status = 'confirmed';
-          order.paymentId = session.payment_intent;
-          order.paidAt = new Date();
-          order.statusHistory.push({
-            status: 'paid',
-            timestamp: new Date(),
-            note: `Payment completed via Stripe. Session: ${session.id}`,
-          });
-          
-          await order.save();
-          console.log(`Order ${order.orderNumber} marked as paid`);
-        }
-      }
-    } catch (error) {
-      console.error('Error updating order payment status:', error);
-      return res.status(500).json({ error: 'Failed to update order' });
-    }
+  try {
+    await updateOrderPayment(event.data.object.metadata?.orderId, event.data.object);
+  } catch (error) {
+    console.error('[Webhook] Error:', error.message);
+    return res.status(500).json({ error: 'Failed to process webhook' });
   }
 
   res.json({ received: true });
 };
 
-router.post('/webhook', express.raw({ type: 'application/json' }), webhookHandler);
+router.post('/webhook', webhookHandler);
 
 module.exports = router;
