@@ -1,43 +1,21 @@
-const fs = require("fs");
-const path = require("path");
-
 const admin = require("firebase-admin");
-
-const serviceAccountPath = path.join(
-  __dirname,
-  "../../firebase-service-account.json",
-);
 
 let serviceAccount = {};
 
 try {
-  if (fs.existsSync(serviceAccountPath)) {
-    const serviceAccountStr = fs.readFileSync(serviceAccountPath, "utf8");
-    serviceAccount = JSON.parse(serviceAccountStr);
-
-    if (
-      serviceAccount.private_key &&
-      serviceAccount.private_key.includes("\\n")
-    ) {
-      serviceAccount.private_key = serviceAccount.private_key.replace(
-        /\\n/g,
-        "\n",
-      );
-    }
-    console.log("Firebase service account loaded from file");
+  serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || "{}");
+  if (
+    serviceAccount.private_key &&
+    serviceAccount.private_key.includes("\\n")
+  ) {
+    serviceAccount.private_key = serviceAccount.private_key.replace(
+      /\\n/g,
+      "\n",
+    );
+  }
+  if (serviceAccount.client_email) {
+    console.log("Firebase service account loaded from env");
     console.log("Client email:", serviceAccount.client_email);
-  } else {
-    console.log("Firebase service account file not found, trying env var...");
-    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || "{}");
-    if (
-      serviceAccount.private_key &&
-      serviceAccount.private_key.includes("\\n")
-    ) {
-      serviceAccount.private_key = serviceAccount.private_key.replace(
-        /\\n/g,
-        "\n",
-      );
-    }
   }
 } catch (e) {
   console.error("Failed to load Firebase service account:", e.message);

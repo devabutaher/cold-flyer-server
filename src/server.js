@@ -1,8 +1,11 @@
 require("dotenv").config();
 const app = require("./app");
 const connectDB = require("./config/db");
-const dns = require("dns");
-dns.setServers(["8.8.8.8", "1.1.1.1"]);
+
+if (process.env.NODE_ENV !== "production") {
+  const dns = require("dns");
+  dns.setServers(["8.8.8.8", "1.1.1.1"]);
+}
 
 const PORT = process.env.PORT || 5000;
 
