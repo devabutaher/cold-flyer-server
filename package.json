@@ -7,7 +7,9 @@
     "start": "node src/server.js",
     "dev": "node src/server.js",
     "seed": "node src/utils/seed.js",
-    "seed:admin": "node seed-admin.js"
+    "seed:admin": "node seed-admin.js",
+    "lint": "eslint src/",
+    "format": "prettier --write src/"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -34,7 +36,9 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "eslint": "^10.4.0",
+    "nodemon": "^3.0.1",
+    "prettier": "^3.8.3"
   },
   "engines": {
     "node": ">=18.0.0"

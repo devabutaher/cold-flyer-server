@@ -88,13 +88,18 @@ app.use("/api", globalLimiter);
 const mongoose = require("mongoose");
 
 app.get("/api/health", (req, res) => {
-  const isDbConnected = mongoose.connection.readyState === 1;
+  const dbState = mongoose.connection.readyState;
   res.json({
     success: true,
     message: "ColdFlyer API is running",
     timestamp: new Date().toISOString(),
     requestId: req.id,
-    databaseConnected: isDbConnected,
+    uptime: process.uptime(),
+    memory: process.memoryUsage().rss,
+    database: {
+      connected: dbState === 1,
+      state: ["disconnected", "connected", "connecting", "disconnecting"][dbState] || "unknown",
+    },
   });
 });
 

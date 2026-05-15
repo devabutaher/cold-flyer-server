@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const express = require('express');
 const router = express.Router();
 const Order = require('../models/Order');
@@ -33,7 +34,7 @@ async function updateOrderPayment(orderId, paymentData) {
   order.statusHistory.push({ status: 'paid', timestamp: new Date(), note: 'Payment completed via Stripe' });
   
   await order.save();
-  console.log('[Webhook] Order', order.orderNumber, 'marked as paid');
+  logger.info({ orderNumber: order.orderNumber }, 'Order marked as paid');
 }
 
 const webhookHandler = async (req, res) => {
@@ -58,14 +59,14 @@ const webhookHandler = async (req, res) => {
   try {
     event = stripe.webhooks.constructEvent(rawBody, sig, WEBHOOK_SECRET);
   } catch (err) {
-    console.error('[Webhook] Signature error:', err.message);
+    logger.error({ err: err.message }, 'Webhook signature error');
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
   try {
     await updateOrderPayment(event.data.object.metadata?.orderId, event.data.object);
   } catch (error) {
-    console.error('[Webhook] Error:', error.message);
+    logger.error({ err: error.message }, 'Webhook processing error');
     return res.status(500).json({ error: 'Failed to process webhook' });
   }
 

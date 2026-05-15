@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const { OAuth2Client } = require('google-auth-library');
 
 const getClient = () => {
@@ -21,7 +22,7 @@ const verifyGoogleToken = async (idToken) => {
     });
     return ticket.getPayload();
   } catch (error) {
-    console.error('Google token verification error:', error.message);
+    logger.warn({ err: error }, 'Google token verification failed');
     throw new Error('Invalid Google token');
   }
 };

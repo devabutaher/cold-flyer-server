@@ -164,8 +164,9 @@ orderSchema.index({ status: 1, createdAt: -1 });
 
 orderSchema.pre('save', function (next) {
   if (!this.orderNumber) {
+    const { randomInt } = require('crypto');
     const year = new Date().getFullYear();
-    const random = Math.floor(Math.random() * 99999).toString().padStart(5, '0');
+    const random = randomInt(100000, 999999).toString();
     this.orderNumber = `CF-${year}-${random}`;
   }
 

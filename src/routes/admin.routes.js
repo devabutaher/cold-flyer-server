@@ -6,8 +6,8 @@ const {
   getDashboard, getAnalytics, getAllUsers, updateUserRole,
   getAllProducts, getAllOrders, getAllServices, getAllReviews,
   createCoupon, getCoupons, updateCoupon, deleteCoupon,
-  getTechnicians, createTechnician, getTechnician, updateTechnician, deleteTechnician
-} = require('../controllers/admin.controller');
+  getTechnicians, createTechnician, getTechnician, updateTechnician, deleteTechnician,
+} = require('../controllers/admin');
 
 router.use(authenticate);
 router.use(authorize('admin'));

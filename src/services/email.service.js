@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const { sendEmail } = require('../config/mail');
 
 const sendVerificationEmail = async (email, name, token) => {
@@ -12,7 +13,7 @@ const sendVerificationEmail = async (email, name, token) => {
     `;
     return await sendEmail(email, subject, html);
   } catch (err) {
-    console.error('[Email] sendVerificationEmail failed:', err.message);
+    logger.error({ err }, 'sendVerificationEmail failed');
     return false;
   }
 };
@@ -30,7 +31,7 @@ const sendPasswordResetEmail = async (email, name, token) => {
     `;
     return await sendEmail(email, subject, html);
   } catch (err) {
-    console.error('[Email] sendPasswordResetEmail failed:', err.message);
+    logger.error({ err }, 'sendPasswordResetEmail failed');
     return false;
   }
 };
@@ -47,7 +48,7 @@ const sendOrderConfirmationEmail = async (email, name, order) => {
     `;
     return await sendEmail(email, subject, html);
   } catch (err) {
-    console.error('[Email] sendOrderConfirmationEmail failed:', err.message);
+    logger.error({ err }, 'sendOrderConfirmationEmail failed');
     return false;
   }
 };
@@ -76,7 +77,7 @@ const sendBookingConfirmationEmail = async (email, name, booking, status = 'conf
     `;
     return await sendEmail(email, subject, html);
   } catch (err) {
-    console.error('[Email] sendBookingConfirmationEmail failed:', err.message);
+    logger.error({ err }, 'sendBookingConfirmationEmail failed');
     return false;
   }
 };

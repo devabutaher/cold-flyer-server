@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const Order = require("../models/Order");
 const Product = require("../models/Product");
 const ApiError = require("../utils/ApiError");
@@ -9,7 +10,7 @@ try {
     stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
   }
 } catch (e) {
-  console.warn("Stripe not initialized:", e.message);
+  logger.warn({ err: e }, "Stripe not initialized");
 }
 
 const quickCheckout = catchAsync(async (req, res) => {

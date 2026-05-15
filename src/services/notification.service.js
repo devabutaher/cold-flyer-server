@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const Notification = require('../models/Notification');
 
 const createNotification = async (userId, type, title, message, data = {}) => {
@@ -11,7 +12,7 @@ const createNotification = async (userId, type, title, message, data = {}) => {
     });
     return notification;
   } catch (error) {
-    console.error('Error creating notification:', error);
+    logger.error({ err: error }, 'Error creating notification');
     return null;
   }
 };

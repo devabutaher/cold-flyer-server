@@ -2,6 +2,7 @@ const Service = require('../models/Service');
 const ServiceBooking = require('../models/ServiceBooking');
 const ApiError = require('../utils/ApiError');
 const catchAsync = require('../utils/catchAsync');
+const logger = require('../utils/logger');
 const { createServiceNotification } = require('../services/notification.service');
 const { sendBookingConfirmationEmail } = require('../services/email.service');
 
@@ -50,10 +51,10 @@ const getServiceBySlug = catchAsync(async (req, res) => {
 
 const getServiceById = catchAsync(async (req, res) => {
   const { id } = req.params;
-  console.log('[getServiceById] Looking for service id:', id);
+  logger.debug({ serviceId: id }, 'getServiceById');
 
   const service = await Service.findById(id);
-  console.log('[getServiceById] Found:', service?.name || 'NOT FOUND');
+  logger.debug({ serviceId: id, found: !!service }, 'getServiceById result');
 
   if (!service) {
     throw ApiError.notFound('Service not found');

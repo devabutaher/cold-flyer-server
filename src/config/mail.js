@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
@@ -18,10 +19,10 @@ const sendEmail = async (to, subject, html) => {
       subject,
       html,
     });
-    console.log(`Email sent: ${info.messageId}`);
+    logger.info({ messageId: info.messageId }, 'Email sent');
     return true;
   } catch (error) {
-    console.error('Email send error:', error);
+    logger.error({ err: error }, 'Email send error');
     return false;
   }
 };
