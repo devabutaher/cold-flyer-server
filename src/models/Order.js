@@ -101,6 +101,9 @@ const orderSchema = new mongoose.Schema({
   stripeSessionId: {
     type: String,
   },
+  sslcommerzTranId: {
+    type: String,
+  },
   billingAddress: {
     fullName: String,
     phone: String,

@@ -36,12 +36,12 @@ const paymentSchema = new mongoose.Schema({
   },
   method: {
     type: String,
-    enum: ['card', 'paypal', 'bank_transfer', 'wallet'],
+    enum: ['card', 'paypal', 'bank_transfer', 'wallet', 'mobile_banking'],
     required: true,
   },
   provider: {
     type: String,
-    enum: ['stripe', 'paypal', 'square'],
+    enum: ['stripe', 'sslcommerz', 'paypal', 'square'],
   },
   providerTransactionId: String,
   status: {

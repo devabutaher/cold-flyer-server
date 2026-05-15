@@ -6,7 +6,7 @@ const catchAsync = require('../utils/catchAsync');
 const { createPaymentNotification } = require('../services/notification.service');
 
 const initiatePayment = catchAsync(async (req, res) => {
-  const { orderId, bookingId, method, amount } = req.body;
+  const { orderId, bookingId, method, amount, provider = 'stripe' } = req.body;
 
   let order, booking, paymentableId, paymentableType;
 
@@ -30,7 +30,7 @@ const initiatePayment = catchAsync(async (req, res) => {
     booking: bookingId || null,
     amount: order?.total || booking?.total || amount,
     method: method || 'card',
-    provider: 'stripe',
+    provider,
     status: 'pending',
   });
 

@@ -18,6 +18,7 @@ const cartRoutes = require("./routes/cart.routes");
 const serviceRoutes = require("./routes/service.routes");
 const reviewRoutes = require("./routes/review.routes");
 const paymentRoutes = require("./routes/payment.routes");
+const sslcommerzRoutes = require("./routes/sslcommerz.routes");
 const adminRoutes = require("./routes/admin.routes");
 
 const app = express();
@@ -42,8 +43,8 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "https://js.stripe.com", "https://accounts.google.com"],
-      frameSrc: ["'self'", "https://js.stripe.com", "https://accounts.google.com"],
+      scriptSrc: ["'self'", "https://js.stripe.com", "https://accounts.google.com", "https://sandbox.sslcommerz.com", "https://sslcommerz.com"],
+      frameSrc: ["'self'", "https://js.stripe.com", "https://accounts.google.com", "https://sandbox.sslcommerz.com", "https://sslcommerz.com"],
       connectSrc: ["'self'"],
       imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://*.unsplash.com"],
       styleSrc: ["'self'", "'unsafe-inline'"],
@@ -55,7 +56,7 @@ app.use(helmet({
 // ── Compression ────────────────────────────────────────
 app.use(compression());
 
-// CRITICAL: Webhook must be BEFORE any body parsing
+// CRITICAL: Webhooks must be BEFORE any body parsing
 app.post(
   "/api/payments/webhook",
   express.raw({ type: "application/json" }),
@@ -117,6 +118,7 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/payments/sslcommerz", sslcommerzRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/upload", require("./routes/upload.routes"));
 
