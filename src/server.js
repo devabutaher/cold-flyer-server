@@ -1,6 +1,19 @@
 require("dotenv").config();
+const logger = require("./utils/logger");
 const app = require("./app");
 const connectDB = require("./config/db");
+
+const REQUIRED_ENV = [
+  'MONGODB_URI',
+  'JWT_SECRET',
+  'JWT_REFRESH_SECRET',
+];
+
+const missing = REQUIRED_ENV.filter(key => !process.env[key]);
+if (missing.length > 0) {
+  logger.fatal({ missing }, 'Missing required environment variables');
+  process.exit(1);
+}
 
 if (process.env.NODE_ENV !== "production") {
   const dns = require("dns");
@@ -9,15 +22,14 @@ if (process.env.NODE_ENV !== "production") {
 
 const PORT = process.env.PORT || 5000;
 
-// Connect to DB immediately
-connectDB();
+connectDB().catch((err) => {
+  logger.error({ err }, 'Failed to connect to database');
+});
 
-// This is required for Vercel to pick up the app
 module.exports = app;
 
-// Only start listening if we are NOT on Vercel (local dev)
 if (process.env.NODE_ENV !== "production") {
   app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    logger.info({ port: PORT }, 'Server started');
   });
 }

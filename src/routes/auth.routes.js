@@ -1,16 +1,63 @@
 const express = require('express');
 const router = express.Router();
-const { registerWithFirebase, loginWithFirebase, logout, refreshToken, changePassword, getMe } = require('../controllers/auth.controller');
+const rateLimit = require('express-rate-limit');
+const {
+  register, login, googleLogin, logout,
+  refreshAccessToken, changePassword, getMe,
+  getSessions, revokeSession, revokeAllSessions,
+} = require('../controllers/auth.controller');
 const { authenticate } = require('../middleware/auth.middleware');
+const { validate } = require('../middleware/validate.middleware');
+const { registerSchema, loginSchema, changePasswordSchema } = require('../validators/auth.validator');
 
-// Firebase auth routes - no validation (uses firebaseToken)
-router.post('/firebase/login', loginWithFirebase);
-router.post('/firebase/register', registerWithFirebase);
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { success: false, message: 'Too many login attempts. Try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
-// User auth routes
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: { success: false, message: 'Too many registration attempts. Try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { success: false, message: 'Too many refresh requests.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const googleLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { success: false, message: 'Too many attempts. Try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Email/password auth
+router.post('/register', registerLimiter, validate(registerSchema), register);
+router.post('/login', loginLimiter, validate(loginSchema), login);
+
+// Google OAuth
+router.post('/google', googleLimiter, googleLogin);
+
+// Token management
 router.post('/logout', authenticate, logout);
-router.post('/refresh', refreshToken);
-router.post('/change-password', authenticate, changePassword);
+router.post('/refresh', refreshLimiter, refreshAccessToken);
+router.post('/change-password', authenticate, validate(changePasswordSchema), changePassword);
 router.get('/me', authenticate, getMe);
+
+// Session management
+router.get('/sessions', authenticate, getSessions);
+router.delete('/sessions/:id', authenticate, revokeSession);
+router.delete('/sessions', authenticate, revokeAllSessions);
 
 module.exports = router;

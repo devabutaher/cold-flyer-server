@@ -6,7 +6,7 @@ const {
   getDashboard, getAnalytics, getAllUsers, updateUserRole,
   getAllProducts, getAllOrders, getAllServices, getAllReviews,
   createCoupon, getCoupons, updateCoupon, deleteCoupon,
-  getTechnicians
+  getTechnicians, createTechnician, getTechnician, updateTechnician, deleteTechnician
 } = require('../controllers/admin.controller');
 
 router.use(authenticate);
@@ -29,5 +29,9 @@ router.patch('/coupons/:id', updateCoupon);
 router.delete('/coupons/:id', deleteCoupon);
 
 router.get('/technicians', getTechnicians);
+router.post('/technicians', createTechnician);
+router.get('/technicians/:id', getTechnician);
+router.patch('/technicians/:id', updateTechnician);
+router.delete('/technicians/:id', deleteTechnician);
 
 module.exports = router;

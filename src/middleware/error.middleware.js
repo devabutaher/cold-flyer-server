@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const ApiError = require('../utils/ApiError');
 
 const errorHandler = (err, req, res, next) => {
@@ -28,6 +29,7 @@ const errorHandler = (err, req, res, next) => {
       message: 'Validation failed',
       errors,
       code: 'VALIDATION_ERROR',
+      requestId: req?.id,
     });
   }
 
@@ -43,10 +45,15 @@ const errorHandler = (err, req, res, next) => {
     error = ApiError.unauthorized(message);
   }
 
+  if (statusCode >= 500) {
+    logger.error({ err, requestId: req?.id }, message);
+  }
+
   const response = {
     success: false,
     message,
     code: error.code || 'ERROR',
+    requestId: req?.id,
   };
 
   if (err.errors && err.errors.length > 0) {
