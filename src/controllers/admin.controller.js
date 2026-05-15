@@ -10,7 +10,7 @@ const catchAsync = require('../utils/catchAsync');
 const { getDashboardStats, getSalesAnalytics, getServiceAnalytics } = require('../services/analytics.service');
 
 const getDashboard = catchAsync(async (req, res) => {
-  const stats = await getDashboardStats(req.user.shop);
+  const stats = await getDashboardStats();
   res.json({ success: true, data: stats });
 });
 
@@ -20,8 +20,8 @@ const getAnalytics = catchAsync(async (req, res) => {
   const end = endDate || new Date();
 
   const [sales, services] = await Promise.all([
-    getSalesAnalytics(start, end, req.user.shop),
-    getServiceAnalytics(start, end, req.user.shop),
+    getSalesAnalytics(start, end),
+    getServiceAnalytics(start, end),
   ]);
 
   res.json({ success: true, data: { sales, services } });
@@ -65,7 +65,6 @@ const getAllProducts = catchAsync(async (req, res) => {
   const { page = 1, limit = 20 } = req.query;
 
   const products = await Product.find()
-    .populate('shop', 'name')
     .populate('createdBy', 'name')
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
@@ -106,7 +105,6 @@ const getAllServices = catchAsync(async (req, res) => {
   const { page = 1, limit = 20 } = req.query;
 
   const services = await Service.find()
-    .populate('shop', 'name')
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(parseInt(limit));
@@ -198,7 +196,6 @@ const getTechnicians = catchAsync(async (req, res) => {
 
   const technicians = await Technician.find(query)
     .populate('user', 'name email phone avatar')
-    .populate('shop', 'name')
     .sort({ rating: -1 })
     .skip((page - 1) * limit)
     .limit(parseInt(limit));

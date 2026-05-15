@@ -6,10 +6,6 @@ const orderItemSchema = new mongoose.Schema({
     ref: 'Product',
     required: true,
   },
-  shop: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Shop',
-  },
   name: String,
   sku: String,
   image: String,
@@ -130,10 +126,6 @@ const orderSchema = new mongoose.Schema({
   isPickup: {
     type: Boolean,
     default: false,
-  },
-  pickupShop: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Shop',
   },
   estimatedDelivery: Date,
   deliveredAt: Date,

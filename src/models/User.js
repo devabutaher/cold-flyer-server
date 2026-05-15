@@ -107,11 +107,6 @@ const userSchema = new mongoose.Schema({
     ref: 'Technician',
     default: null,
   },
-  shop: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Shop',
-    default: null,
-  },
   isActive: {
     type: Boolean,
     default: true,

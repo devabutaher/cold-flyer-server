@@ -46,7 +46,6 @@ const quickCheckout = catchAsync(async (req, res) => {
     const itemTotal = product.price * qty;
     orderItems.push({
       product: product._id,
-      shop: product.shop,
       name: product.name,
       sku: product.sku,
       image: product.images?.[0]?.url,

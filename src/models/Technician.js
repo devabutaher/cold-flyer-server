@@ -32,11 +32,6 @@ const technicianSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
-  shop: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Shop',
-    required: true,
-  },
   employeeId: String,
   specializations: [String],
   certifications: [certificationSchema],
@@ -93,7 +88,6 @@ const technicianSchema = new mongoose.Schema({
 });
 
 technicianSchema.index({ user: 1 });
-technicianSchema.index({ shop: 1 });
 technicianSchema.index({ status: 1 });
 
 module.exports = mongoose.model('Technician', technicianSchema);

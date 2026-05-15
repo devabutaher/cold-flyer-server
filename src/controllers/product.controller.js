@@ -155,7 +155,6 @@ const getCategories = catchAsync(async (req, res) => {
 const createProduct = catchAsync(async (req, res) => {
   const product = await Product.create({
     ...req.body,
-    shop: req.user.shop,
     createdBy: req.user._id,
   });
 
@@ -174,8 +173,8 @@ const updateProduct = catchAsync(async (req, res) => {
     throw ApiError.notFound('Product not found');
   }
 
-  if (req.user.role !== 'admin' && product.shop.toString() !== req.user.shop?.toString()) {
-    throw ApiError.forbidden('You can only update products in your shop');
+  if (req.user.role !== 'admin') {
+    throw ApiError.forbidden('You do not have permission to update this product');
   }
 
   Object.assign(product, req.body);
@@ -197,8 +196,8 @@ const deleteProduct = catchAsync(async (req, res) => {
     throw ApiError.notFound('Product not found');
   }
 
-  if (req.user.role !== 'admin' && product.shop.toString() !== req.user.shop?.toString()) {
-    throw ApiError.forbidden('You can only delete products in your shop');
+  if (req.user.role !== 'admin') {
+    throw ApiError.forbidden('You do not have permission to delete this product');
   }
 
   product.isActive = false;

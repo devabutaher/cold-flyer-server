@@ -3,6 +3,7 @@ const ServiceBooking = require('../models/ServiceBooking');
 const ApiError = require('../utils/ApiError');
 const catchAsync = require('../utils/catchAsync');
 const { createServiceNotification } = require('../services/notification.service');
+const { sendBookingConfirmationEmail } = require('../services/email.service');
 
 const getServices = catchAsync(async (req, res) => {
   const { category, serviceType, page = 1, limit = 20 } = req.query;
@@ -108,12 +109,13 @@ const createBooking = catchAsync(async (req, res) => {
     throw ApiError.notFound('Service not found');
   }
 
+  const price = serviceData.basePrice || 0;
   const booking = await ServiceBooking.create({
     user: req.user._id,
     service,
-    items: [{ service, name: serviceData.name, price: serviceData.basePrice, quantity: 1 }],
-    subtotal: serviceData.basePrice,
-    total: serviceData.basePrice,
+    items: [{ service, name: serviceData.name, price, quantity: 1 }],
+    subtotal: price,
+    total: price,
     scheduledDate,
     scheduledTime,
     propertyDetails,
@@ -127,6 +129,8 @@ const createBooking = catchAsync(async (req, res) => {
   req.user.serviceBookings.push(booking._id);
   await req.user.save();
 
+  sendBookingConfirmationEmail(req.user.email, req.user.name || req.user.email, booking, 'confirmed').catch(() => {});
+
   res.status(201).json({
     success: true,
     message: 'Booking created successfully',
@@ -139,12 +143,10 @@ const getBookings = catchAsync(async (req, res) => {
 
   let query = {};
 
-  if (req.user.role === 'customer') {
+  if (req.user.role === 'user') {
     query.user = req.user._id;
-  } else if (req.user.role === 'technician') {
-    query.technician = req.user.technicianProfile;
-  } else if (['manager', 'admin'].includes(req.user.role) && req.user.shop) {
-    query.shop = req.user.shop;
+  } else if (['admin'].includes(req.user.role)) {
+    if (req.query.userId) query.user = req.query.userId;
   }
 
   if (status) query.status = status;
@@ -202,7 +204,7 @@ const updateBooking = catchAsync(async (req, res) => {
 
 const scheduleBooking = catchAsync(async (req, res) => {
   const { id } = req.params;
-  const { scheduledDate, scheduledTime } = req.body;
+  const { scheduledDate, scheduledTime, technician } = req.body;
 
   const booking = await ServiceBooking.findById(id);
   if (!booking) {
@@ -211,10 +213,16 @@ const scheduleBooking = catchAsync(async (req, res) => {
 
   booking.scheduledDate = scheduledDate;
   booking.scheduledTime = scheduledTime;
+  if (technician) booking.technician = technician;
   booking.status = 'scheduled';
   await booking.save();
 
   await createServiceNotification(booking.user, booking, 'scheduled');
+
+  const populatedBooking = await ServiceBooking.findById(booking._id).populate('user', 'name email').populate('service', 'name');
+  if (populatedBooking?.user?.email) {
+    sendBookingConfirmationEmail(populatedBooking.user.email, populatedBooking.user.name || populatedBooking.user.email, populatedBooking, 'scheduled').catch(() => {});
+  }
 
   res.json({
     success: true,
@@ -256,6 +264,11 @@ const completeBooking = catchAsync(async (req, res) => {
     });
   }
 
+  const completedBooking = await ServiceBooking.findById(booking._id).populate('user', 'name email').populate('service', 'name');
+  if (completedBooking?.user?.email) {
+    sendBookingConfirmationEmail(completedBooking.user.email, completedBooking.user.name || completedBooking.user.email, completedBooking, 'completed').catch(() => {});
+  }
+
   res.json({
     success: true,
     message: 'Booking completed successfully',
@@ -282,9 +295,65 @@ const cancelBooking = catchAsync(async (req, res) => {
 
   await createServiceNotification(booking.user, booking, 'cancelled');
 
+  const cancelledBooking = await ServiceBooking.findById(booking._id).populate('user', 'name email').populate('service', 'name');
+  if (cancelledBooking?.user?.email) {
+    sendBookingConfirmationEmail(cancelledBooking.user.email, cancelledBooking.user.name || cancelledBooking.user.email, cancelledBooking, 'cancelled').catch(() => {});
+  }
+
   res.json({
     success: true,
     message: 'Booking cancelled successfully',
+  });
+});
+
+const confirmBooking = catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  const booking = await ServiceBooking.findById(id);
+  if (!booking) {
+    throw ApiError.notFound('Booking not found');
+  }
+
+  if (booking.status !== 'pending') {
+    throw ApiError.badRequest('Only pending bookings can be confirmed');
+  }
+
+  booking.status = 'confirmed';
+  await booking.save();
+
+  await createServiceNotification(booking.user, booking, 'confirmed');
+
+  const populatedBooking = await ServiceBooking.findById(booking._id).populate('user', 'name email').populate('service', 'name');
+  if (populatedBooking?.user?.email) {
+    sendBookingConfirmationEmail(populatedBooking.user.email, populatedBooking.user.name || populatedBooking.user.email, populatedBooking, 'confirmed').catch(() => {});
+  }
+
+  res.json({
+    success: true,
+    message: 'Booking confirmed successfully',
+    data: { booking },
+  });
+});
+
+const startService = catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  const booking = await ServiceBooking.findById(id);
+  if (!booking) {
+    throw ApiError.notFound('Booking not found');
+  }
+
+  if (booking.status !== 'scheduled') {
+    throw ApiError.badRequest('Only scheduled bookings can be started');
+  }
+
+  booking.status = 'in_progress';
+  await booking.save();
+
+  res.json({
+    success: true,
+    message: 'Service started successfully',
+    data: { booking },
   });
 });
 
@@ -315,7 +384,9 @@ module.exports = {
   getBookings,
   getBookingById,
   updateBooking,
+  confirmBooking,
   scheduleBooking,
+  startService,
   completeBooking,
   cancelBooking,
 };

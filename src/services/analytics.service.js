@@ -3,9 +3,7 @@ const Product = require('../models/Product');
 const User = require('../models/User');
 const ServiceBooking = require('../models/ServiceBooking');
 
-const getDashboardStats = async (shopId = null) => {
-  const matchQuery = shopId ? { shop: shopId } : {};
-
+const getDashboardStats = async () => {
   const [
     totalRevenue,
     totalOrders,
@@ -15,13 +13,13 @@ const getDashboardStats = async (shopId = null) => {
     topProducts,
   ] = await Promise.all([
     Order.aggregate([
-      { $match: { paymentStatus: 'paid', ...matchQuery } },
+      { $match: { paymentStatus: 'paid' } },
       { $group: { _id: null, total: { $sum: '$total' } } },
     ]),
-    Order.countDocuments(matchQuery),
-    Product.countDocuments(shopId ? { shop: shopId } : {}),
-    User.countDocuments({ role: 'customer' }),
-    Order.find(matchQuery)
+    Order.countDocuments(),
+    Product.countDocuments(),
+    User.countDocuments({ role: 'user' }),
+    Order.find()
       .sort({ createdAt: -1 })
       .limit(10)
       .populate('user', 'name email'),
@@ -41,12 +39,11 @@ const getDashboardStats = async (shopId = null) => {
   };
 };
 
-const getSalesAnalytics = async (startDate, endDate, shopId = null) => {
+const getSalesAnalytics = async (startDate, endDate) => {
   const matchQuery = {
     createdAt: { $gte: new Date(startDate), $lte: new Date(endDate) },
     paymentStatus: 'paid',
   };
-  if (shopId) matchQuery.shop = shopId;
 
   const dailySales = await Order.aggregate([
     { $match: matchQuery },
@@ -85,11 +82,10 @@ const getSalesAnalytics = async (startDate, endDate, shopId = null) => {
   return { dailySales, categorySales };
 };
 
-const getServiceAnalytics = async (startDate, endDate, shopId = null) => {
+const getServiceAnalytics = async (startDate, endDate) => {
   const matchQuery = {
     createdAt: { $gte: new Date(startDate), $lte: new Date(endDate) },
   };
-  if (shopId) matchQuery.shop = shopId;
 
   const [
     totalBookings,

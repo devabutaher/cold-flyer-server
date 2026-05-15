@@ -38,7 +38,6 @@ const addItem = catchAsync(async (req, res) => {
   } else {
     cart.items.push({
       product: product._id,
-      shop: product.shop,
       name: product.name,
       sku: product.sku,
       image: product.images[0]?.url,

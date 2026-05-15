@@ -64,7 +64,6 @@ const createOrder = catchAsync(async (req, res) => {
     const itemTotal = product.price * qty;
     orderItems.push({
       product: product._id,
-      shop: product.shop,
       name: product.name,
       sku: product.sku,
       image: product.images?.[0]?.url,
@@ -174,11 +173,6 @@ const getOrders = catchAsync(async (req, res) => {
     // No filter - show all orders
   } else if (req.user.role === "user" || req.user.role === "customer") {
     query.user = req.user._id;
-  } else if (
-    ["manager", "technician"].includes(req.user.role) &&
-    req.user.shop
-  ) {
-    query.items = { $elemMatch: { shop: req.user.shop } };
   }
 
   if (status) query.status = status;
