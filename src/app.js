@@ -6,7 +6,6 @@ const compression = require("compression");
 const cookieParser = require("cookie-parser");
 const mongoSanitize = require('express-mongo-sanitize');
 const rateLimit = require("express-rate-limit");
-const pinoHttp = require('pino-http');
 const logger = require("./utils/logger");
 const errorHandler = require("./middleware/error.middleware");
 const { csrfProtection } = require("./middleware/csrf.middleware");
@@ -31,12 +30,32 @@ app.use((req, res, next) => {
 });
 
 // ── Request logging ────────────────────────────────────
-app.use(pinoHttp({
-  logger,
-  autoLogging: {
-    ignore: (req) => req.url === '/api/health',
-  },
-}));
+const isDev = process.env.NODE_ENV !== 'production';
+const colors = {
+  green: (s) => `\x1b[32m${s}\x1b[0m`,
+  yellow: (s) => `\x1b[33m${s}\x1b[0m`,
+  red: (s) => `\x1b[31m${s}\x1b[0m`,
+  cyan: (s) => `\x1b[36m${s}\x1b[0m`,
+  dim: (s) => `\x1b[2m${s}\x1b[0m`,
+};
+
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const method = isDev ? colors.cyan(req.method) : req.method;
+    const url = req.originalUrl;
+    const status = res.statusCode;
+    let coloredStatus;
+    if (isDev) {
+      coloredStatus = status >= 500 ? colors.red(status) : status >= 400 ? colors.yellow(status) : colors.green(status);
+    } else {
+      coloredStatus = status;
+    }
+    const time = isDev ? colors.dim(`${Date.now() - start}ms`) : `${Date.now() - start}ms`;
+    console.log(`${method} ${url} ${coloredStatus} ${time}`);
+  });
+  next();
+});
 
 // ── Security headers ───────────────────────────────────
 app.use(helmet({

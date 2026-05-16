@@ -63,6 +63,10 @@ const webhookHandler = async (req, res) => {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
+  if (event.type !== 'checkout.session.completed') {
+    return res.json({ received: true });
+  }
+
   try {
     await updateOrderPayment(event.data.object.metadata?.orderId, event.data.object);
   } catch (error) {

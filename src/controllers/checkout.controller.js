@@ -22,6 +22,28 @@ const createCheckoutSession = catchAsync(async (req, res) => {
     return sslcommerzController.initPayment(req, res);
   }
 
+  if (provider === 'cod') {
+    const order = await Order.findById(id);
+    if (!order) throw ApiError.notFound("Order not found");
+    if (!order.user || order.user.toString() !== req.user._id.toString()) throw ApiError.forbidden("Not authorized");
+    if (order.paymentStatus === "paid") throw ApiError.badRequest("Order already paid");
+
+    order.status = 'confirmed';
+    order.paymentMethod = 'cod';
+    order.statusHistory.push({
+      status: 'confirmed',
+      timestamp: new Date(),
+      note: 'Order placed with Cash on Delivery',
+    });
+    await order.save();
+
+    return res.json({
+      success: true,
+      data: { orderId: order._id },
+      message: 'Order placed successfully',
+    });
+  }
+
   const order = await Order.findById(id).populate("items.product");
   if (!order) {
     throw ApiError.notFound("Order not found");
@@ -87,6 +109,9 @@ const createCheckoutSession = catchAsync(async (req, res) => {
     },
   });
 
+  order.stripeSessionId = session.id;
+  await order.save();
+
   res.json({
     success: true,
     data: {
@@ -99,6 +124,7 @@ const createCheckoutSession = catchAsync(async (req, res) => {
 
 const verifyPayment = catchAsync(async (req, res) => {
   const { id } = req.params;
+  const { sessionId: frontendSessionId } = req.body;
 
   const order = await Order.findById(id);
   if (!order) {
@@ -123,13 +149,27 @@ const verifyPayment = catchAsync(async (req, res) => {
     });
   }
 
+  const sessionId = order.stripeSessionId || frontendSessionId;
+  if (sessionId && stripe) {
+    try {
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      if (session.payment_status !== 'paid' && session.payment_status !== 'no_payment_required') {
+        throw ApiError.badRequest("Payment not confirmed by Stripe");
+      }
+    } catch (err) {
+      if (err instanceof ApiError) throw err;
+      logger.warn({ err: err.message }, "Stripe session verification failed, falling back to manual verify");
+    }
+  }
+
   order.paymentStatus = "paid";
   order.status = "confirmed";
   order.paidAt = new Date();
+  order.paymentId = sessionId || order.stripeSessionId;
   order.statusHistory.push({
     status: "paid",
     timestamp: new Date(),
-    note: "Payment completed successfully",
+    note: "Payment verified successfully",
   });
 
   await order.save();
