@@ -7,10 +7,17 @@ const { createServiceNotification } = require('../services/notification.service'
 const { sendBookingConfirmationEmail } = require('../services/email.service');
 
 const getServices = catchAsync(async (req, res) => {
-  const { category, serviceType, page = 1, limit = 20 } = req.query;
+  const { search, category, serviceType, page = 1, limit = 20 } = req.query;
 
   const query = {};
 
+  if (search) {
+    const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    query.$or = [
+      { name: { $regex: escaped, $options: 'i' } },
+      { description: { $regex: escaped, $options: 'i' } },
+    ];
+  }
   if (category) query.category = { $regex: new RegExp(`^${category}$`, 'i') };
   if (serviceType) query.serviceType = { $regex: new RegExp(`^${serviceType}$`, 'i') };
 

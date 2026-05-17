@@ -25,6 +25,7 @@ const serviceSchema = z.object({
 
 const serviceQuerySchema = z.object({
   query: z.object({
+    search: z.string().optional(),
     category: z.string().optional(),
     serviceType: z.string().optional(),
     featured: z.coerce.boolean().optional(),
