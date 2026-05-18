@@ -50,6 +50,7 @@ const createCheckoutSession = catchAsync(async (req, res) => {
   }
 
   if (!order.user || order.user.toString() !== req.user._id.toString()) {
+    logger.warn({ orderId: order._id, orderUser: order.user?.toString(), reqUser: req.user._id.toString() }, "Order ownership check failed");
     throw ApiError.forbidden("Not authorized");
   }
 

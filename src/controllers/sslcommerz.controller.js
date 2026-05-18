@@ -38,8 +38,8 @@ const initPayment = catchAsync(async (req, res) => {
     total_amount: order.total,
     currency: 'BDT',
     tran_id: tranId,
-    success_url: `${FRONTEND_URL}/order/${order._id}?success=true&provider=sslcommerz`,
-    fail_url: `${FRONTEND_URL}/order/${order._id}?success=false&provider=sslcommerz`,
+    success_url: `${BACKEND_URL}/api/payments/sslcommerz/return`,
+    fail_url: `${BACKEND_URL}/api/payments/sslcommerz/return`,
     cancel_url: `${FRONTEND_URL}/order/${order._id}?success=false&provider=sslcommerz`,
     ipn_url: `${BACKEND_URL}/api/payments/sslcommerz/ipn`,
     shipping_method: order.isPickup ? 'NO' : 'Courier',
@@ -142,18 +142,32 @@ const handleIpn = catchAsync(async (req, res) => {
 });
 
 const handleReturn = catchAsync(async (req, res) => {
-  const { tran_id, status, bank_tran_id } = req.body;
+  const { tran_id, status } = req.body;
 
-  const order = await Order.findOne({ sslcommerzTranId: tran_id });
-  if (!order) {
-    throw ApiError.notFound("Order not found");
+  if (!tran_id) {
+    return res.redirect(`${FRONTEND_URL}/order/unknown?success=false&provider=sslcommerz`);
   }
 
-  res.json({
-    success: status === 'VALID',
-    message: status === 'VALID' ? 'Payment successful' : 'Payment failed',
-    data: { orderId: order._id },
-  });
+  const order = await Order.findOne({ sslcommerzTranId: tran_id });
+
+  if (order && (status === 'VALID' || status === 'VALIDATED')) {
+    if (order.paymentStatus !== 'paid') {
+      order.paymentStatus = 'paid';
+      if (order.status === 'pending') order.status = 'confirmed';
+      order.paidAt = new Date();
+      order.statusHistory.push({
+        status: 'paid',
+        timestamp: new Date(),
+        note: 'Payment completed via SSLCOMMERZ',
+      });
+      await order.save();
+    }
+    res.redirect(`${FRONTEND_URL}/order/${order._id}?success=true&provider=sslcommerz`);
+  } else if (order) {
+    res.redirect(`${FRONTEND_URL}/order/${order._id}?success=${status === 'VALID' || status === 'VALIDATED'}&provider=sslcommerz`);
+  } else {
+    res.redirect(`${FRONTEND_URL}/order/unknown?success=false&provider=sslcommerz`);
+  }
 });
 
 const queryOrder = catchAsync(async (req, res) => {
@@ -183,4 +197,71 @@ const queryOrder = catchAsync(async (req, res) => {
   });
 });
 
-module.exports = { initPayment, handleIpn, handleReturn, queryOrder };
+const verifySslcommerzPayment = catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  if (!store_id || !store_passwd) {
+    throw ApiError.badRequest("SSLCOMMERZ not configured");
+  }
+
+  const order = await Order.findById(id);
+  if (!order) throw ApiError.notFound("Order not found");
+
+  if (!order.user || order.user.toString() !== req.user._id.toString()) {
+    throw ApiError.forbidden("Not authorized");
+  }
+
+  if (order.paymentStatus === 'paid') {
+    return res.json({
+      success: true,
+      message: "Order already paid",
+      data: { order },
+    });
+  }
+
+  if (!order.sslcommerzTranId) {
+    throw ApiError.badRequest("No SSLCOMMERZ transaction for this order");
+  }
+
+  const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live);
+  let queryResponse;
+  try {
+    queryResponse = await sslcz.transactionQueryByTransactionId({
+      tran_id: order.sslcommerzTranId,
+    });
+  } catch (e) {
+    logger.error({ err: e.message, tran_id: order.sslcommerzTranId }, "SSLCOMMERZ query failed");
+    throw ApiError.badRequest("Failed to query SSLCOMMERZ transaction");
+  }
+
+  logger.info({ queryResponse, tran_id: order.sslcommerzTranId }, "SSLCOMMERZ verify query response");
+
+  const txStatus = queryResponse?.status;
+  if (txStatus !== 'VALID' && txStatus !== 'VALIDATED') {
+    return res.json({
+      success: false,
+      message: `SSLCOMMERZ transaction status: ${txStatus || 'UNKNOWN'}`,
+      data: { status: txStatus || 'UNKNOWN', raw: queryResponse },
+    });
+  }
+
+  order.paymentStatus = 'paid';
+  if (order.status === 'pending') order.status = 'confirmed';
+  order.paymentId = order.sslcommerzTranId;
+  order.paidAt = new Date();
+  order.statusHistory.push({
+    status: 'paid',
+    timestamp: new Date(),
+    note: 'Payment verified via SSLCOMMERZ query',
+  });
+
+  await order.save();
+
+  res.json({
+    success: true,
+    message: "Payment verified successfully",
+    data: { order },
+  });
+});
+
+module.exports = { initPayment, handleIpn, handleReturn, queryOrder, verifySslcommerzPayment };

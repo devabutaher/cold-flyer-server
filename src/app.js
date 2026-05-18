@@ -18,6 +18,7 @@ const serviceRoutes = require("./routes/service.routes");
 const reviewRoutes = require("./routes/review.routes");
 const paymentRoutes = require("./routes/payment.routes");
 const sslcommerzRoutes = require("./routes/sslcommerz.routes");
+const { handleReturn } = require("./controllers/sslcommerz.controller");
 const adminRoutes = require("./routes/admin.routes");
 
 const app = express();
@@ -125,6 +126,9 @@ app.get("/api/health", (req, res) => {
 
 // ── Auth routes (no CSRF needed) ───────────────────────
 app.use("/api/auth", authRoutes);
+
+// ── SSLCOMMERZ return (no CSRF — SSLCOMMERZ POSTs directly) ──
+app.post("/api/payments/sslcommerz/return", handleReturn);
 
 // ── CSRF protection for state-changing routes ──────────
 app.use("/api", csrfProtection);
