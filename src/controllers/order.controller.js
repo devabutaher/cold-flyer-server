@@ -266,6 +266,33 @@ const updateOrderStatus = catchAsync(async (req, res) => {
   });
 });
 
+const updateOrder = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const { shippingAddress } = req.body;
+
+  const order = await Order.findById(id);
+  if (!order) throw ApiError.notFound("Order not found");
+
+  if (order.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+    throw ApiError.forbidden("Not authorized");
+  }
+
+  if (shippingAddress) {
+    const existing = order.shippingAddress ? order.shippingAddress.toObject() : {};
+    order.shippingAddress = { ...existing, ...shippingAddress };
+    if (!order.shippingAddress.fullName) order.shippingAddress.fullName = req.user.name;
+    if (!order.shippingAddress.phone) order.shippingAddress.phone = req.user.phone;
+  }
+
+  await order.save();
+
+  res.json({
+    success: true,
+    message: "Order updated",
+    data: { order },
+  });
+});
+
 const cancelOrder = catchAsync(async (req, res) => {
   const { id } = req.params;
   const { reason } = req.body;
@@ -330,6 +357,7 @@ module.exports = {
   createOrder,
   getOrders,
   getOrderById,
+  updateOrder,
   updateOrderStatus,
   cancelOrder,
   confirmOrder,
