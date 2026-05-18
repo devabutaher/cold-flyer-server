@@ -5,6 +5,10 @@ const CSRF_HEADER = 'x-csrf-token';
 
 const SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS'];
 
+function isBearerAuthenticated(req) {
+  return !!(req.headers.authorization && req.headers.authorization.startsWith('Bearer '));
+}
+
 const csrfProtection = (req, res, next) => {
   if (SAFE_METHODS.includes(req.method)) {
     if (!req.cookies[CSRF_COOKIE]) {
@@ -17,6 +21,10 @@ const csrfProtection = (req, res, next) => {
         maxAge: 24 * 60 * 60 * 1000,
       });
     }
+    return next();
+  }
+
+  if (isBearerAuthenticated(req)) {
     return next();
   }
 

@@ -9,6 +9,7 @@ const rateLimit = require("express-rate-limit");
 const logger = require("./utils/logger");
 const errorHandler = require("./middleware/error.middleware");
 const { csrfProtection } = require("./middleware/csrf.middleware");
+const csrfRoutes = require("./routes/csrf.routes");
 const authRoutes = require("./routes/auth.routes");
 const userRoutes = require("./routes/user.routes");
 const productRoutes = require("./routes/product.routes");
@@ -123,6 +124,9 @@ app.get("/api/health", (req, res) => {
     },
   });
 });
+
+// ── CSRF bootstrap (no CSRF needed) ────────────────────
+app.use("/api/csrf-token", csrfRoutes);
 
 // ── Auth routes (no CSRF needed) ───────────────────────
 app.use("/api/auth", authRoutes);
