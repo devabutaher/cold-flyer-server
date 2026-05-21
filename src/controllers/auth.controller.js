@@ -2,7 +2,7 @@ const User = require('../models/User');
 const Cart = require('../models/Cart');
 const ApiError = require('../utils/ApiError');
 const catchAsync = require('../utils/catchAsync');
-const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = require('../utils/generateToken');
+const { generateAccessToken, generateRefreshToken, verifyAccessToken, verifyRefreshToken } = require('../utils/generateToken');
 const { verifyGoogleToken } = require('../config/google');
 
 const MAX_LOGIN_ATTEMPTS = 5;
@@ -20,7 +20,7 @@ const setAuthCookies = (res, accessToken, refreshToken) => {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
-    path: '/api/auth',
+    path: '/',
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
@@ -29,12 +29,12 @@ const setAuthCookies = (res, accessToken, refreshToken) => {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
-    maxAge: 15 * 60 * 1000,
+    maxAge: 60 * 60 * 1000,
   });
 };
 
 const clearAuthCookies = (res) => {
-  res.clearCookie('refreshToken', { path: '/api/auth' });
+  res.clearCookie('refreshToken', { path: '/' });
   res.clearCookie('accessToken', { path: '/' });
 };
 
@@ -213,24 +213,22 @@ const refreshAccessToken = catchAsync(async (req, res) => {
     throw ApiError.unauthorized('User not found or inactive');
   }
 
-  const tokenIndex = user.refreshTokens.indexOf(token);
-
-  if (tokenIndex === -1) {
-    if (decoded.tokenVersion !== undefined) {
-      await User.findByIdAndUpdate(user._id, {
-        $set: { refreshTokens: [], tokenVersion: (user.tokenVersion || 0) + 1 },
-      });
-    }
-    clearAuthCookies(res);
-    throw ApiError.unauthorized('Refresh token has been revoked');
-  }
-
   const accessToken = generateAccessToken(user);
   const newRefreshToken = generateRefreshToken(user);
 
-  user.refreshTokens[tokenIndex] = newRefreshToken;
-  user.tokenVersion = (user.tokenVersion || 0) + 1;
-  await user.save();
+  const updated = await User.findOneAndUpdate(
+    { _id: user._id, refreshTokens: token, isActive: true },
+    {
+      $set: { 'refreshTokens.$': newRefreshToken },
+      $inc: { tokenVersion: 1 },
+    },
+    { new: true }
+  );
+
+  if (!updated) {
+    clearAuthCookies(res);
+    throw ApiError.unauthorized('Refresh token has been revoked');
+  }
 
   setAuthCookies(res, accessToken, newRefreshToken);
 
@@ -330,6 +328,40 @@ const revokeAllSessions = catchAsync(async (req, res) => {
   });
 });
 
+const authStatus = catchAsync(async (req, res) => {
+  const token = req.cookies.accessToken;
+  if (!token) {
+    return res.json({ success: true, data: { authenticated: false } });
+  }
+
+  let decoded;
+  try {
+    decoded = verifyAccessToken(token);
+  } catch {
+    return res.json({ success: true, data: { authenticated: false } });
+  }
+
+  const user = await User.findById(decoded.userId).select('name email phone role avatar');
+  if (!user || !user.isActive) {
+    return res.json({ success: true, data: { authenticated: false } });
+  }
+
+  return res.json({
+    success: true,
+    data: {
+      authenticated: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        avatar: user.avatar,
+      },
+    },
+  });
+});
+
 module.exports = {
   register,
   login,
@@ -338,6 +370,7 @@ module.exports = {
   refreshAccessToken,
   changePassword,
   getMe,
+  authStatus,
   getSessions,
   revokeSession,
   revokeAllSessions,

@@ -3,7 +3,7 @@ const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const {
   register, login, googleLogin, logout,
-  refreshAccessToken, changePassword, getMe,
+  refreshAccessToken, changePassword, getMe, authStatus,
   getSessions, revokeSession, revokeAllSessions,
 } = require('../controllers/auth.controller');
 const { authenticate } = require('../middleware/auth.middleware');
@@ -54,6 +54,7 @@ router.post('/logout', authenticate, logout);
 router.post('/refresh', refreshLimiter, refreshAccessToken);
 router.post('/change-password', authenticate, validate(changePasswordSchema), changePassword);
 router.get('/me', authenticate, getMe);
+router.get('/status', authStatus);
 
 // Session management
 router.get('/sessions', authenticate, getSessions);
