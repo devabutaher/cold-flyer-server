@@ -362,11 +362,17 @@ const authStatus = catchAsync(async (req, res) => {
   });
 });
 
+const signout = (req, res) => {
+  clearAuthCookies(res);
+  res.json({ success: true, message: 'Signed out' });
+};
+
 module.exports = {
   register,
   login,
   googleLogin,
   logout,
+  signout,
   refreshAccessToken,
   changePassword,
   getMe,
