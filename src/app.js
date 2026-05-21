@@ -1,12 +1,11 @@
-const crypto = require('crypto');
+const crypto = require("crypto");
 const express = require("express");
 const helmet = require("helmet");
 const cors = require("cors");
 const compression = require("compression");
 const cookieParser = require("cookie-parser");
-const mongoSanitize = require('express-mongo-sanitize');
+const mongoSanitize = require("express-mongo-sanitize");
 const rateLimit = require("express-rate-limit");
-const logger = require("./utils/logger");
 const errorHandler = require("./middleware/error.middleware");
 const { csrfProtection } = require("./middleware/csrf.middleware");
 const csrfRoutes = require("./routes/csrf.routes");
@@ -26,13 +25,13 @@ const app = express();
 
 // ── Request ID ─────────────────────────────────────────
 app.use((req, res, next) => {
-  req.id = crypto.randomBytes(8).toString('hex');
-  res.setHeader('X-Request-ID', req.id);
+  req.id = crypto.randomBytes(8).toString("hex");
+  res.setHeader("X-Request-ID", req.id);
   next();
 });
 
 // ── Request logging ────────────────────────────────────
-const isDev = process.env.NODE_ENV !== 'production';
+const isDev = process.env.NODE_ENV !== "production";
 const colors = {
   green: (s) => `\x1b[32m${s}\x1b[0m`,
   yellow: (s) => `\x1b[33m${s}\x1b[0m`,
@@ -43,7 +42,7 @@ const colors = {
 
 app.use((req, res, next) => {
   const start = Date.now();
-  res.on('finish', () => {
+  res.on("finish", () => {
     const method = isDev ? colors.cyan(req.method) : req.method;
     const url = req.originalUrl;
     const status = res.statusCode;
@@ -60,35 +59,48 @@ app.use((req, res, next) => {
 });
 
 // ── Security headers ───────────────────────────────────
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "https://js.stripe.com", "https://accounts.google.com", "https://sandbox.sslcommerz.com", "https://sslcommerz.com"],
-      frameSrc: ["'self'", "https://js.stripe.com", "https://accounts.google.com", "https://sandbox.sslcommerz.com", "https://sslcommerz.com"],
-      connectSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://*.unsplash.com"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          "https://js.stripe.com",
+          "https://accounts.google.com",
+          "https://sandbox.sslcommerz.com",
+          "https://sslcommerz.com",
+        ],
+        frameSrc: [
+          "'self'",
+          "https://js.stripe.com",
+          "https://accounts.google.com",
+          "https://sandbox.sslcommerz.com",
+          "https://sslcommerz.com",
+        ],
+        connectSrc: ["'self'"],
+        imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://*.unsplash.com"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+      },
     },
-  },
-  crossOriginEmbedderPolicy: false,
-}));
+    crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: false,
+  }),
+);
 
 // ── Compression ────────────────────────────────────────
 app.use(compression());
 
 // CRITICAL: Webhooks must be BEFORE any body parsing
-app.post(
-  "/api/payments/webhook",
-  express.raw({ type: "application/json" }),
-  paymentRoutes.webhookHandler
-);
+app.post("/api/payments/webhook", express.raw({ type: "application/json" }), paymentRoutes.webhookHandler);
 
 // ── CORS ───────────────────────────────────────────────
-app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:3000",
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    credentials: true,
+  }),
+);
 
 // ── Body parsing ───────────────────────────────────────
 app.use(express.json({ limit: "10mb" }));

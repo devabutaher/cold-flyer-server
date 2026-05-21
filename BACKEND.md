@@ -9,84 +9,92 @@ ColdFlyer is an HVAC (Heating, Ventilation, and Air Conditioning) e-commerce pla
 - **Runtime**: Node.js 18+
 - **Framework**: Express.js 4.x
 - **Database**: MongoDB with Mongoose ODM
-- **Authentication**: JWT with bcrypt password hashing (Firebase in front-end with- email password and google)
-- **Validation**:  Zod
-- **File Storage**: Cloudinary (for product images, user profile image, service images)
-- **Email**: Nodemailer with Mailgun
-- **API Documentation**: Swagger/OpenAPI 3.0
+- **Authentication**: JWT (access + refresh tokens) with bcrypt password hashing
+- **Validation**: Zod
+- **File Storage**: Cloudinary via multer-storage-cloudinary
+- **Email**: Nodemailer (SMTP)
+- **Payments**: Stripe + SSLCOMMERZ (Bangladesh gateway)
+- **Security**: helmet, cors, compression, cookie-parser, express-rate-limit, express-mongo-sanitize
 
 ---
 
 ## Project Structure
 
 ```
-backend/
+cold-flyer-server/
 ├── src/
 │   ├── config/
 │   │   ├── db.js              # MongoDB connection
 │   │   ├── cloudinary.js      # Cloudinary config
+│   │   ├── google.js          # Google OAuth config
 │   │   └── mail.js           # Email service config
 │   ├── controllers/
+│   │   ├── admin/             # Admin-specific controllers
 │   │   ├── auth.controller.js
-│   │   ├── user.controller.js
-│   │   ├── product.controller.js
+│   │   ├── cart.controller.js
+│   │   ├── checkout.controller.js
+│   │   ├── csrf.controller.js
 │   │   ├── order.controller.js
-│   │   ├── service.controller.js
-│   │   ├── review.controller.js
-│   │   ├── shop.controller.js
 │   │   ├── payment.controller.js
-│   │   └── admin.controller.js
+│   │   ├── product.controller.js
+│   │   ├── review.controller.js
+│   │   ├── service.controller.js
+│   │   ├── sslcommerz.controller.js
+│   │   └── user.controller.js
 │   ├── middleware/
-│   │   ├── auth.middleware.js      # JWT verification
-│   │   ├── role.middleware.js     # RBAC checks
-│   │   ├── validate.middleware.js # Input validation
+│   │   ├── auth.middleware.js      # JWT verification (Bearer + cookie)
+│   │   ├── csrf.middleware.js     # CSRF token validation
 │   │   ├── error.middleware.js    # Global error handler
-│   │   └── upload.middleware.js    # File upload
+│   │   ├── role.middleware.js     # RBAC checks
+│   │   ├── upload.middleware.js    # File upload (Cloudinary)
+│   │   └── validate.middleware.js # Input validation
 │   ├── models/
-│   │   ├── User.js
-│   │   ├── Product.js
+│   │   ├── Blog.js
+│   │   ├── Cart.js
+│   │   ├── Coupon.js
+│   │   ├── Notification.js
 │   │   ├── Order.js
-│   │   ├── OrderItem.js
+│   │   ├── Payment.js
+│   │   ├── Product.js
+│   │   ├── Review.js
 │   │   ├── Service.js
 │   │   ├── ServiceBooking.js
-│   │   ├── Review.js
-│   │   ├── Shop.js
-│   │   ├── Cart.js
-│   │   ├── Wishlist.js
-│   │   ├── Address.js
-│   │   ├── Notification.js
-│   │   ├── Payment.js
-│   │   └── Blog.js
+│   │   ├── Technician.js
+│   │   └── User.js
 │   ├── routes/
+│   │   ├── admin.routes.js
 │   │   ├── auth.routes.js
-│   │   ├── user.routes.js
-│   │   ├── product.routes.js
-│   │   ├── order.routes.js
-│   │   ├── service.routes.js
-│   │   ├── review.routes.js
-│   │   ├── shop.routes.js
 │   │   ├── cart.routes.js
+│   │   ├── csrf.routes.js
+│   │   ├── order.routes.js
 │   │   ├── payment.routes.js
-│   │   ├── notification.routes.js
-│   │   └── admin.routes.js
+│   │   ├── product.routes.js
+│   │   ├── review.routes.js
+│   │   ├── service.routes.js
+│   │   ├── sslcommerz.routes.js
+│   │   ├── upload.routes.js
+│   │   └── user.routes.js
 │   ├── services/
-│   │   ├── email.service.js
 │   │   ├── analytics.service.js
+│   │   ├── email.service.js
 │   │   └── notification.service.js
 │   ├── utils/
 │   │   ├── ApiError.js
 │   │   ├── catchAsync.js
 │   │   ├── generateToken.js
+│   │   ├── logger.js
 │   │   └── validators.js
-│   ├──validators/
+│   ├── validators/
 │   │   ├── auth.validator.js
 │   │   ├── product.validator.js
 │   │   ├── order.validator.js
 │   │   └── user.validator.js
 │   └── app.js
-├── .env.example
+├── .env
+├── .prettierrc
+├── eslint.config.mjs
 ├── package.json
-└── SPEC.md
+└── vercel.json
 ```
 
 ---
@@ -1476,23 +1484,17 @@ backend/
 ```javascript
 {
   accessToken: {
-    payload: {
-      userId: ObjectId,
-      email: String,
-      role: String,
-      shopId: ObjectId (optional)
-    },
-    expiresIn: '15m'
+    payload: { userId, email, role },
+    expiresIn: process.env.JWT_EXPIRES_IN || '15m'   // default .env: 1h
   },
   refreshToken: {
-    payload: {
-      userId: ObjectId,
-      tokenVersion: Number
-    },
-    expiresIn: '7d'
+    payload: { userId, tokenVersion },
+    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d'
   }
 }
 ```
+
+Access token sent via `Authorization: Bearer` header or `accessToken` httpOnly cookie. Refresh token in httpOnly cookie for `/api/auth/refresh`.
 
 ### Permission Matrix
 
@@ -1521,12 +1523,19 @@ backend/
 
 ## API Endpoints
 
+### CSRF Token
+
+```
+GET    /api/csrf-token            - Get CSRF token (sets csrf-token cookie)
+```
+
 ### Authentication Routes
 
 ```
 POST   /api/auth/register          - Register new user
 POST   /api/auth/login           - Login user
 POST   /api/auth/logout         - Logout user
+POST   /api/auth/google          - Google OAuth login
 POST   /api/auth/refresh         - Refresh access token
 POST   /api/auth/verify-email    - Verify email address
 POST   /api/auth/resend-verify    - Resend verification email
@@ -1636,9 +1645,15 @@ DELETE /api/reviews/:id            - Delete review
 ### Payment Routes
 
 ```
-POST   /api/payments/initiate       - Initiate payment
-POST   /api/payments/webhook       - Payment provider webhook
-GET    /api/payments/:id           - Get payment details
+POST   /api/payments/initiate                     - Initiate payment
+POST   /api/payments/webhook                      - Stripe webhook (raw body, before JSON parser)
+GET    /api/payments/:id                          - Get payment details
+POST   /api/payments/sslcommerz/init              - SSLCOMMERZ payment init
+POST   /api/payments/sslcommerz/return            - SSLCOMMERZ return (no CSRF)
+POST   /api/payments/sslcommerz/success           - SSLCOMMERZ success
+POST   /api/payments/sslcommerz/fail              - SSLCOMMERZ fail
+POST   /api/payments/sslcommerz/cancel            - SSLCOMMERZ cancel
+POST   /api/payments/sslcommerz/ipn               - SSLCOMMERZ IPN
 ```
 
 ### Blog Routes
@@ -1751,10 +1766,18 @@ MONGODB_URI=mongodb://localhost:27017/coldflyer
 MONGODB_USER=
 MONGODB_PASSWORD=
 
+# Admin seed (used by: npm run seed:admin)
+ADMIN_EMAIL=admin@coldflyer.com
+ADMIN_PASSWORD=
+ADMIN_NAME=Admin
+
+# Google OAuth
+GOOGLE_CLIENT_ID=
+
 # JWT
 JWT_SECRET=your-jwt-secret-key
 JWT_REFRESH_SECRET=your-refresh-secret-key
-JWT_EXPIRES_IN=15m
+JWT_EXPIRES_IN=1h
 JWT_REFRESH_EXPIRES_IN=7d
 
 # Cloudinary
@@ -1762,7 +1785,7 @@ CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
 
-# Email
+# Email (SMTP)
 SMTP_HOST=
 SMTP_PORT=587
 SMTP_USER=
@@ -1775,12 +1798,14 @@ STRIPE_PUBLIC_KEY=
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 
-# Redis (optional)
-REDIS_URL=redis://localhost:6379
+# SSLCOMMERZ (Bangladesh Payment Gateway)
+SSLCOMMERZ_STORE_ID=
+SSLCOMMERZ_STORE_PASSWD=
+SSLCOMMERZ_IS_LIVE=false
 
 # Rate Limiting
 RATE_LIMIT_WINDOW_MS=900000
-RATE_LIMIT_MAX_REQUESTS=100
+RATE_LIMIT_MAX_REQUESTS=500
 ```
 
 ---
@@ -1789,13 +1814,14 @@ RATE_LIMIT_MAX_REQUESTS=100
 
 ### Security Requirements
 
-1. **Password Hashing**: Use bcrypt with minimum 10 salt rounds
-2. **JWT Storage**: Access token in memory, refresh token in httpOnly cookie
-3. **Rate Limiting**: 100 requests per 15 minutes per IP
-4. **Input Validation**: Validate all inputs using Joi or Zod
-5. **XSS Protection**: Sanitize HTML in user-generated content
-6. **CORS**: Allow only frontend domain
-7. **Helmet**: Use helmet.js for security headers
+1. **Password Hashing**: bcrypt with minimum 10 salt rounds
+2. **JWT Storage**: Access token in httpOnly cookie or Bearer header; refresh token in httpOnly cookie
+3. **Rate Limiting**: 500 requests per 15 minutes per IP (configurable via env)
+4. **Input Validation**: Zod schemas in `src/validators/`
+5. **NoSQL Injection**: `express-mongo-sanitize` applied globally
+6. **CSRF**: State-changing `/api` routes protected via `csrf.middleware.js`
+7. **CORS**: Allow only `FRONTEND_URL` (default localhost:3000)
+8. **Helmet**: Custom Content-Security-Policy for Stripe, Google, SSLCOMMERZ
 
 ### Performance Requirements
 
@@ -1816,18 +1842,11 @@ RATE_LIMIT_MAX_REQUESTS=100
 
 ### Data Seeding
 
-Create seed data with:
-- 1 admin user
-- 2 shop managers
-- 5 technicians
-- 1 default shop
-- Sample products (from src/data/products-data.js)
-- Sample services
-- Sample orders
+```bash
+npm run seed         # src/utils/seed.js — seeds products, services, users
+npm run seed:admin   # seed-admin.js — creates/updates admin from ADMIN_EMAIL/PASSWORD env vars
+```
 
-### Testing Requirements
+### Testing
 
-1. Unit tests for controllers/services
-2. Integration tests for API endpoints
-3. Minimum 80% code coverage
-4. Use Jest and Supertest
+No test framework configured. The `package.json` has no `test` script and no Jest/Supertest in devDependencies.
