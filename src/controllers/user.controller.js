@@ -2,6 +2,7 @@ const User = require('../models/User');
 const Order = require('../models/Order');
 const ApiError = require('../utils/ApiError');
 const catchAsync = require('../utils/catchAsync');
+const { cloudinary } = require('../config/cloudinary');
 const { getUserNotifications, markAsRead, markAllAsRead } = require('../services/notification.service');
 
 const getProfile = catchAsync(async (req, res) => {
@@ -39,9 +40,16 @@ const updateAvatar = catchAsync(async (req, res) => {
     throw ApiError.badRequest('Please upload an image');
   }
 
+  const b64 = Buffer.from(req.file.buffer).toString('base64');
+  const dataURI = `data:${req.file.mimetype};base64,${b64}`;
+
+  const result = await cloudinary.uploader.upload(dataURI, {
+    folder: 'coldflyer',
+  });
+
   const user = await User.findByIdAndUpdate(
     req.user._id,
-    { avatar: req.file.path },
+    { avatar: result.secure_url },
     { new: true }
   );
 

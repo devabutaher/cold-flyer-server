@@ -26,7 +26,11 @@ const updateUserRole = catchAsync(async (req, res) => {
   const { id } = req.params;
   const { role } = req.body;
 
-  const user = await User.findByIdAndUpdate(id, { role }, { new: true });
+  if (req.user._id.toString() === id) {
+    throw ApiError.badRequest('You cannot change your own role');
+  }
+
+  const user = await User.findByIdAndUpdate(id, { role }, { new: true, runValidators: true });
 
   if (!user) {
     throw ApiError.notFound('User not found');

@@ -62,12 +62,14 @@ const register = catchAsync(async (req, res) => {
     throw ApiError.conflict('An account with this email already exists');
   }
 
+  const role = process.env.ADMIN_EMAIL && email === process.env.ADMIN_EMAIL ? 'admin' : 'user';
+
   const user = await User.create({
     name,
     email,
     password,
     phone: phone || '',
-    role: 'user',
+    role,
   });
 
   const cart = await Cart.create({ user: user._id, items: [] });
@@ -215,7 +217,9 @@ const getMe = catchAsync(async (req, res) => {
 
 
 const authStatus = catchAsync(async (req, res) => {
-  const token = req.cookies.accessToken;
+  const token = req.headers.authorization?.startsWith("Bearer")
+    ? req.headers.authorization.split(" ")[1]
+    : req.cookies.accessToken;
   if (!token) {
     return res.json({ success: true, data: { authenticated: false } });
   }
@@ -227,7 +231,7 @@ const authStatus = catchAsync(async (req, res) => {
     return res.json({ success: true, data: { authenticated: false } });
   }
 
-  const user = await User.findById(decoded.userId).select('name email phone role avatar');
+  const user = await User.findById(decoded.userId).select('name email phone role avatar isActive');
   if (!user || !user.isActive) {
     return res.json({ success: true, data: { authenticated: false } });
   }
