@@ -11,7 +11,7 @@ const getTechnicians = catchAsync(async (req, res) => {
 
   const technicians = await Technician.find(query)
     .populate('user', 'name email phone avatar')
-    .sort({ rating: -1 })
+    .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(parseInt(limit));
 

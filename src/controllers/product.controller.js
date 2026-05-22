@@ -41,6 +41,7 @@ const getProducts = catchAsync(async (req, res) => {
   if (sortBy === 'price_desc') sort = { price: -1 };
   if (sortBy === 'rating') sort = { rating: -1 };
   if (sortBy === 'popular') sort = { totalSold: -1 };
+  if (sortBy === 'newest') sort = { createdAt: -1 };
 
   const products = await Product.find(query)
     .sort(sort)

@@ -7,7 +7,7 @@ const { createServiceNotification } = require('../services/notification.service'
 const { sendBookingConfirmationEmail } = require('../services/email.service');
 
 const getServices = catchAsync(async (req, res) => {
-  const { search, category, serviceType, page = 1, limit = 20 } = req.query;
+  const { search, category, serviceType, sortBy, page = 1, limit = 20 } = req.query;
 
   const query = {};
 
@@ -21,8 +21,14 @@ const getServices = catchAsync(async (req, res) => {
   if (category) query.category = { $regex: new RegExp(`^${category}$`, 'i') };
   if (serviceType) query.serviceType = { $regex: new RegExp(`^${serviceType}$`, 'i') };
 
+  let sort = { createdAt: -1 };
+  if (sortBy === 'price_asc') sort = { basePrice: 1 };
+  if (sortBy === 'price_desc') sort = { basePrice: -1 };
+  if (sortBy === 'rating') sort = { rating: -1 };
+  if (sortBy === 'popular') sort = { bookingCount: -1 };
+
   const services = await Service.find(query)
-    .sort({ createdAt: -1 })
+    .sort(sort)
     .skip((page - 1) * limit)
     .limit(parseInt(limit));
 
@@ -75,6 +81,7 @@ const getServiceById = catchAsync(async (req, res) => {
 
 const getFeaturedServices = catchAsync(async (req, res) => {
   const services = await Service.find({ isFeatured: true })
+    .sort({ createdAt: -1 })
     .limit(10);
 
   res.json({
