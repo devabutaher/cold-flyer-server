@@ -3,7 +3,6 @@ const router = express.Router();
 const { authenticate } = require('../middleware/auth.middleware');
 const { authorize } = require('../middleware/role.middleware');
 const { validate } = require('../middleware/validate.middleware');
-const { uploadSingle } = require('../middleware/upload.middleware');
 const { productSchema, productQuerySchema } = require('../validators/product.validator');
 const {
   getProducts, getProductBySlug, getProductById, getFeaturedProducts, getBestSellers,

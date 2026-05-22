@@ -8,18 +8,14 @@ const { createPaymentNotification } = require("../services/notification.service"
 const initiatePayment = catchAsync(async (req, res) => {
   const { orderId, bookingId, method, amount, provider = "stripe" } = req.body;
 
-  let order, booking, paymentableId, paymentableType;
+  let order, booking;
 
   if (orderId) {
     order = await Order.findById(orderId);
     if (!order) throw ApiError.notFound("Order not found");
-    paymentableId = order._id;
-    paymentableType = "Order";
   } else if (bookingId) {
     booking = await ServiceBooking.findById(bookingId);
     if (!booking) throw ApiError.notFound("Booking not found");
-    paymentableId = booking._id;
-    paymentableType = "ServiceBooking";
   } else {
     throw ApiError.badRequest("Order or booking ID is required");
   }

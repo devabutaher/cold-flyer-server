@@ -6,7 +6,6 @@ const connectDB = require("./config/db");
 const REQUIRED_ENV = [
   'MONGODB_URI',
   'JWT_SECRET',
-  'JWT_REFRESH_SECRET',
 ];
 
 const missing = REQUIRED_ENV.filter(key => !process.env[key]);

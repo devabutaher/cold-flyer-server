@@ -2,8 +2,10 @@ const User = require('../models/User');
 const Cart = require('../models/Cart');
 const ApiError = require('../utils/ApiError');
 const catchAsync = require('../utils/catchAsync');
-const { generateAccessToken, generateRefreshToken, verifyAccessToken, verifyRefreshToken } = require('../utils/generateToken');
+const { generateAccessToken, verifyAccessToken, parseDurationToMs } = require('../utils/generateToken');
 const { verifyGoogleToken } = require('../config/google');
+const crypto = require('crypto');
+const { sendVerificationCode: sendCodeEmail } = require('../services/email.service');
 
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCK_DURATION_MINUTES = 15;
@@ -15,34 +17,26 @@ const checkAccountLockout = (user) => {
   }
 };
 
-const setAuthCookies = (res, accessToken, refreshToken) => {
-  res.cookie('refreshToken', refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    path: '/',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
+const ACCESS_TOKEN_MAX_AGE = parseDurationToMs(process.env.JWT_EXPIRES_IN) || parseDurationToMs(process.env.NODE_ENV === 'production' ? '1h' : '30d');
 
+const setAuthCookies = (res, accessToken) => {
   res.cookie('accessToken', accessToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
-    maxAge: 60 * 60 * 1000,
+    maxAge: ACCESS_TOKEN_MAX_AGE,
   });
 };
 
 const clearAuthCookies = (res) => {
-  res.clearCookie('refreshToken', { path: '/' });
   res.clearCookie('accessToken', { path: '/' });
 };
 
 const sendUserResponse = (res, user, statusCode = 200) => {
   const accessToken = generateAccessToken(user);
-  const refreshToken = generateRefreshToken(user);
 
-  setAuthCookies(res, accessToken, refreshToken);
+  setAuthCookies(res, accessToken);
 
   res.status(statusCode).json({
     success: true,
@@ -110,12 +104,10 @@ const login = catchAsync(async (req, res) => {
 
   await User.findByIdAndUpdate(user._id, {
     $set: {
-      refreshTokens: [],
       lastLogin: new Date(),
       loginAttempts: 0,
       lockUntil: null,
     },
-    $inc: { tokenVersion: 1 },
   });
 
   sendUserResponse(res, user);
@@ -149,6 +141,7 @@ const googleLogin = catchAsync(async (req, res) => {
       password: sub,
       avatar: picture || null,
       role: 'user',
+      provider: 'google',
       isEmailVerified: true,
     });
 
@@ -163,27 +156,17 @@ const googleLogin = catchAsync(async (req, res) => {
 
   await User.findByIdAndUpdate(user._id, {
     $set: {
-      refreshTokens: [],
       lastLogin: new Date(),
       loginAttempts: 0,
       lockUntil: null,
       avatar: picture || user.avatar,
     },
-    $inc: { tokenVersion: 1 },
   });
 
   sendUserResponse(res, user);
 });
 
 const logout = catchAsync(async (req, res) => {
-  const token = req.cookies.refreshToken;
-
-  if (req.user && token) {
-    await User.findByIdAndUpdate(req.user._id, {
-      $pull: { refreshTokens: token },
-    });
-  }
-
   clearAuthCookies(res);
 
   res.json({
@@ -192,51 +175,7 @@ const logout = catchAsync(async (req, res) => {
   });
 });
 
-const refreshAccessToken = catchAsync(async (req, res) => {
-  const token = req.cookies.refreshToken;
-  if (!token) {
-    throw ApiError.unauthorized('Refresh token not found');
-  }
 
-  let decoded;
-  try {
-    decoded = verifyRefreshToken(token);
-  } catch {
-    clearAuthCookies(res);
-    throw ApiError.unauthorized('Invalid or expired refresh token');
-  }
-
-  const user = await User.findById(decoded.userId);
-
-  if (!user || !user.isActive) {
-    clearAuthCookies(res);
-    throw ApiError.unauthorized('User not found or inactive');
-  }
-
-  const accessToken = generateAccessToken(user);
-  const newRefreshToken = generateRefreshToken(user);
-
-  const updated = await User.findOneAndUpdate(
-    { _id: user._id, refreshTokens: token, isActive: true },
-    {
-      $set: { 'refreshTokens.$': newRefreshToken },
-      $inc: { tokenVersion: 1 },
-    },
-    { new: true }
-  );
-
-  if (!updated) {
-    clearAuthCookies(res);
-    throw ApiError.unauthorized('Refresh token has been revoked');
-  }
-
-  setAuthCookies(res, accessToken, newRefreshToken);
-
-  res.json({
-    success: true,
-    data: { accessToken },
-  });
-});
 
 const changePassword = catchAsync(async (req, res) => {
   const { currentPassword, newPassword } = req.body;
@@ -252,7 +191,6 @@ const changePassword = catchAsync(async (req, res) => {
   }
 
   user.password = newPassword;
-  user.refreshTokens = [];
   await user.save();
 
   clearAuthCookies(res);
@@ -274,59 +212,7 @@ const getMe = catchAsync(async (req, res) => {
   });
 });
 
-const getSessions = catchAsync(async (req, res) => {
-  const user = await User.findById(req.user._id).select('refreshTokens lastLogin');
 
-  const sessions = user.refreshTokens.map((token, index) => ({
-    id: index,
-    createdAt: null,
-    isCurrent: token === req.cookies.refreshToken,
-  }));
-
-  res.json({
-    success: true,
-    data: { sessions, total: sessions.length },
-  });
-});
-
-const revokeSession = catchAsync(async (req, res) => {
-  const { id } = req.params;
-  const sessionIndex = parseInt(id, 10);
-
-  const user = await User.findById(req.user._id);
-
-  if (isNaN(sessionIndex) || sessionIndex < 0 || sessionIndex >= user.refreshTokens.length) {
-    throw ApiError.notFound('Session not found');
-  }
-
-  const isCurrentSession = user.refreshTokens[sessionIndex] === req.cookies.refreshToken;
-
-  user.refreshTokens.splice(sessionIndex, 1);
-  await user.save();
-
-  if (isCurrentSession) {
-    clearAuthCookies(res);
-  }
-
-  res.json({
-    success: true,
-    message: isCurrentSession ? 'Current session revoked' : 'Session revoked',
-  });
-});
-
-const revokeAllSessions = catchAsync(async (req, res) => {
-  await User.findByIdAndUpdate(req.user._id, {
-    $set: { refreshTokens: [] },
-    $inc: { tokenVersion: 1 },
-  });
-
-  clearAuthCookies(res);
-
-  res.json({
-    success: true,
-    message: 'All sessions revoked. Please login again.',
-  });
-});
 
 const authStatus = catchAsync(async (req, res) => {
   const token = req.cookies.accessToken;
@@ -362,22 +248,62 @@ const authStatus = catchAsync(async (req, res) => {
   });
 });
 
-const signout = (req, res) => {
-  clearAuthCookies(res);
-  res.json({ success: true, message: 'Signed out' });
-};
+
+
+const sendVerificationCode = catchAsync(async (req, res) => {
+  const user = await User.findById(req.user._id);
+
+  if (user.isEmailVerified) {
+    throw ApiError.badRequest('Email is already verified');
+  }
+
+  const code = crypto.randomBytes(3).toString('hex').toUpperCase();
+  const hashed = crypto.createHash('sha256').update(code).digest('hex');
+
+  user.emailVerificationToken = hashed;
+  user.emailVerificationExpires = Date.now() + 15 * 60 * 1000;
+  await user.save({ validateBeforeSave: false });
+
+  await sendCodeEmail(user.email, user.name, code);
+
+  res.json({ success: true, message: 'Verification code sent to your email' });
+});
+
+const verifyEmail = catchAsync(async (req, res) => {
+  const { code } = req.body;
+
+  if (!code) {
+    throw ApiError.badRequest('Verification code is required');
+  }
+
+  const hashed = crypto.createHash('sha256').update(code.toUpperCase()).digest('hex');
+
+  const user = await User.findOne({
+    _id: req.user._id,
+    emailVerificationToken: hashed,
+    emailVerificationExpires: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    throw ApiError.badRequest('Invalid or expired verification code');
+  }
+
+  user.isEmailVerified = true;
+  user.emailVerificationToken = undefined;
+  user.emailVerificationExpires = undefined;
+  await user.save({ validateBeforeSave: false });
+
+  res.json({ success: true, message: 'Email verified successfully' });
+});
 
 module.exports = {
   register,
   login,
   googleLogin,
   logout,
-  signout,
-  refreshAccessToken,
   changePassword,
   getMe,
   authStatus,
-  getSessions,
-  revokeSession,
-  revokeAllSessions,
+  sendVerificationCode,
+  verifyEmail,
 };

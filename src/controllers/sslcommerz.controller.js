@@ -87,7 +87,7 @@ const initPayment = catchAsync(async (req, res) => {
 });
 
 const handleIpn = catchAsync(async (req, res) => {
-  const { tran_id, status, bank_tran_id, amount, currency, card_type, card_no, card_issuer, card_brand } = req.body;
+  const { tran_id, status, bank_tran_id, card_type } = req.body;
 
   logger.info({ tran_id, status }, "SSLCOMMERZ IPN received");
 

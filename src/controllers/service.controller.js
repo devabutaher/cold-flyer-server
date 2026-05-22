@@ -149,7 +149,7 @@ const createBooking = catchAsync(async (req, res) => {
 const getBookings = catchAsync(async (req, res) => {
   const { status, page = 1, limit = 20 } = req.query;
 
-  let query = {};
+  const query = {};
 
   if (req.user.role === 'user') {
     query.user = req.user._id;

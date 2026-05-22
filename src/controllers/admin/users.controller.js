@@ -9,7 +9,6 @@ const getAllUsers = catchAsync(async (req, res) => {
   if (role) query.role = role;
 
   const users = await User.find(query)
-    .select('-refreshTokens')
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(parseInt(limit));
@@ -27,7 +26,7 @@ const updateUserRole = catchAsync(async (req, res) => {
   const { id } = req.params;
   const { role } = req.body;
 
-  const user = await User.findByIdAndUpdate(id, { role }, { new: true }).select('-refreshTokens');
+  const user = await User.findByIdAndUpdate(id, { role }, { new: true });
 
   if (!user) {
     throw ApiError.notFound('User not found');

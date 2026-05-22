@@ -50,6 +50,11 @@ const userSchema = new mongoose.Schema({
     enum: ['user', 'admin'],
     default: 'user',
   },
+  provider: {
+    type: String,
+    enum: ['email', 'google'],
+    default: 'email',
+  },
   avatar: {
     type: String,
     default: null,
@@ -72,6 +77,7 @@ const userSchema = new mongoose.Schema({
     default: false,
   },
   emailVerificationToken: String,
+  emailVerificationExpires: Date,
   passwordResetToken: String,
   passwordResetExpires: Date,
   addresses: [addressSchema],
@@ -114,8 +120,6 @@ const userSchema = new mongoose.Schema({
   lastLogin: Date,
   loginAttempts: { type: Number, default: 0 },
   lockUntil: Date,
-  refreshTokens: [String],
-  tokenVersion: { type: Number, default: 0 },
 }, {
   timestamps: true,
 });

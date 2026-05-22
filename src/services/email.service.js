@@ -82,9 +82,28 @@ const sendBookingConfirmationEmail = async (email, name, booking, status = 'conf
   }
 };
 
+const sendVerificationCode = async (email, name, code) => {
+  try {
+    const subject = 'Your ColdFlyer email verification code';
+    const html = `
+      <h1>Email Verification</h1>
+      <p>Hello ${name},</p>
+      <p>Use the code below to verify your email address:</p>
+      <div style="font-size: 32px; letter-spacing: 8px; font-weight: bold; text-align: center; padding: 20px; background: #f4f4f4; border-radius: 8px; margin: 20px 0;">${code}</div>
+      <p>This code expires in 15 minutes.</p>
+      <p>If you didn't request this, please ignore this email.</p>
+    `;
+    return await sendEmail(email, subject, html);
+  } catch (err) {
+    logger.error({ err }, 'sendVerificationCode failed');
+    return false;
+  }
+};
+
 module.exports = {
   sendVerificationEmail,
   sendPasswordResetEmail,
   sendOrderConfirmationEmail,
   sendBookingConfirmationEmail,
+  sendVerificationCode,
 };

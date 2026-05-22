@@ -18,7 +18,7 @@ const createOrder = catchAsync(async (req, res) => {
     couponCode,
   } = req.body;
 
-  let cart = await Cart.findOne({ user: req.user._id }).populate(
+  const cart = await Cart.findOne({ user: req.user._id }).populate(
     "items.product",
   );
 
@@ -33,11 +33,11 @@ const createOrder = catchAsync(async (req, res) => {
     throw ApiError.badRequest("Cart is empty");
   }
 
-  let orderItems = [];
+  const orderItems = [];
   let subtotal = 0;
 
   for (const item of itemsToProcess) {
-    let productId = item.product?._id || item.product || item.productId;
+    const productId = item.product?._id || item.product || item.productId;
 
     if (!productId) {
       throw ApiError.badRequest(
@@ -166,7 +166,7 @@ const getOrders = catchAsync(async (req, res) => {
     limit = 20,
   } = req.query;
 
-  let query = {};
+  const query = {};
 
   // Admin can see all orders, customers see only their orders
   if (req.user.role === "admin" || req.user.role === "superadmin") {

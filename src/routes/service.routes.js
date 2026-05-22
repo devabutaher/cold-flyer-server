@@ -3,7 +3,7 @@ const router = express.Router();
 const { authenticate } = require('../middleware/auth.middleware');
 const { authorize } = require('../middleware/role.middleware');
 const { validate } = require('../middleware/validate.middleware');
-const { serviceSchema, serviceQuerySchema } = require('../validators/service.validator');
+const { serviceQuerySchema } = require('../validators/service.validator');
 const {
   getServices, getServiceBySlug, getServiceById, getFeaturedServices, createService, updateService, deleteService,
   createBooking, getBookings, getBookingById, updateBooking, confirmBooking, scheduleBooking, startService, completeBooking, cancelBooking
