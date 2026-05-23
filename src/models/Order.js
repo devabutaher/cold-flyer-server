@@ -117,14 +117,10 @@ const orderSchema = new mongoose.Schema({
   shippingAddress: {
     fullName: String,
     phone: String,
-    addressLine1: String,
-    addressLine2: String,
-    city: String,
-    state: String,
-    postalCode: String,
-    country: String,
+    district: String,
+    thana: String,
+    address: String,
     instructions: String,
-    coordinates: { lat: Number, lng: Number },
   },
   isPickup: {
     type: Boolean,

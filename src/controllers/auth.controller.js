@@ -227,7 +227,7 @@ const authStatus = catchAsync(async (req, res) => {
     return res.json({ success: true, data: { authenticated: false } });
   }
 
-  const user = await User.findById(decoded.userId).select("name email phone role avatar isActive");
+  const user = await User.findById(decoded.userId);
   if (!user || !user.isActive) {
     return res.json({ success: true, data: { authenticated: false } });
   }
@@ -243,6 +243,11 @@ const authStatus = catchAsync(async (req, res) => {
         phone: user.phone,
         role: user.role,
         avatar: user.avatar,
+        addresses: user.addresses,
+        dateOfBirth: user.dateOfBirth,
+        gender: user.gender,
+        provider: user.provider,
+        emailVerified: user.emailVerified,
       },
     },
   });
