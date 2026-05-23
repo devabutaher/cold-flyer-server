@@ -13,6 +13,7 @@ router.use(authenticate);
 
 router.get('/profile', getProfile);
 router.patch('/profile', updateProfile);
+router.post('/avatar', uploadSingle('avatar'), updateAvatar);
 router.patch('/avatar', uploadSingle('avatar'), updateAvatar);
 
 router.get('/addresses', getAddresses);

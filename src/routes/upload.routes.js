@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
+const { authenticate } = require('../middleware/auth.middleware');
 const { cloudinary } = require('../config/cloudinary');
 const ApiError = require('../utils/ApiError');
 const catchAsync = require('../utils/catchAsync');
@@ -29,6 +30,6 @@ const uploadImage = catchAsync(async (req, res) => {
   });
 });
 
-router.post('/', upload.single('image'), uploadImage);
+router.post('/', authenticate, upload.single('image'), uploadImage);
 
 module.exports = router;
