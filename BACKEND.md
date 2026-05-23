@@ -9,7 +9,7 @@ ColdFlyer is an HVAC (Heating, Ventilation, and Air Conditioning) e-commerce pla
 - **Runtime**: Node.js 18+
 - **Framework**: Express.js 4.x
 - **Database**: MongoDB with Mongoose ODM
-- **Authentication**: JWT (access + refresh tokens) with bcrypt password hashing
+- **Authentication**: JWT single access token with bcrypt password hashing
 - **Validation**: Zod
 - **File Storage**: Cloudinary via multer-storage-cloudinary
 - **Email**: Nodemailer (SMTP)
@@ -33,7 +33,7 @@ cold-flyer-server/
 │   │   ├── auth.controller.js
 │   │   ├── cart.controller.js
 │   │   ├── checkout.controller.js
-│   │   ├── csrf.controller.js
+
 │   │   ├── order.controller.js
 │   │   ├── payment.controller.js
 │   │   ├── product.controller.js
@@ -43,7 +43,7 @@ cold-flyer-server/
 │   │   └── user.controller.js
 │   ├── middleware/
 │   │   ├── auth.middleware.js      # JWT verification (Bearer + cookie)
-│   │   ├── csrf.middleware.js     # CSRF token validation
+
 │   │   ├── error.middleware.js    # Global error handler
 │   │   ├── role.middleware.js     # RBAC checks
 │   │   ├── upload.middleware.js    # File upload (Cloudinary)
@@ -65,7 +65,7 @@ cold-flyer-server/
 │   │   ├── admin.routes.js
 │   │   ├── auth.routes.js
 │   │   ├── cart.routes.js
-│   │   ├── csrf.routes.js
+
 │   │   ├── order.routes.js
 │   │   ├── payment.routes.js
 │   │   ├── product.routes.js
@@ -165,21 +165,14 @@ cold-flyer-server/
   passwordResetExpires: Date,
   addresses: [{
     _id: ObjectId,
-    label: String,           // 'Home', 'Office', etc.
+    label: String,           // 'Home', 'Work', 'Other'
     isDefault: Boolean,
     fullName: String,
     phone: String,
-    addressLine1: String,
-    addressLine2: String,
-    city: String,
-    state: String,
-    postalCode: String,
-    country: { type: String, default: 'USA' },
-    instructions: String,   // Delivery instructions
-    coordinates: {
-      lat: Number,
-      lng: Number
-    }
+    district: String,        // BD district (select from 65 districts)
+    thana: String,           // BD thana/upazila (select from 536 thanas)
+    address: String,         // Full street/area/village address
+    instructions: String,    // Delivery instructions
   }],
   defaultAddress: {
     type: ObjectId,
@@ -219,7 +212,6 @@ cold-flyer-server/
   lastLogin: Date,
   loginAttempts: { type: Number, default: 0 },
   lockUntil: Date,
-  refreshTokens: [String],
   createdAt: Date,
   updatedAt: Date
 }
@@ -1485,16 +1477,11 @@ cold-flyer-server/
 {
   accessToken: {
     payload: { userId, email, role },
-    expiresIn: process.env.JWT_EXPIRES_IN || '15m'   // default .env: 1h
-  },
-  refreshToken: {
-    payload: { userId, tokenVersion },
-    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d'
+    expiresIn: process.env.JWT_EXPIRES_IN || '30d'   // default .env: 30d
   }
 }
-```
 
-Access token sent via `Authorization: Bearer` header or `accessToken` httpOnly cookie. Refresh token in httpOnly cookie for `/api/auth/refresh`.
+Access token sent via `Authorization: Bearer` header or `accessToken` httpOnly cookie.
 
 ### Permission Matrix
 
@@ -1523,12 +1510,6 @@ Access token sent via `Authorization: Bearer` header or `accessToken` httpOnly c
 
 ## API Endpoints
 
-### CSRF Token
-
-```
-GET    /api/csrf-token            - Get CSRF token (sets csrf-token cookie)
-```
-
 ### Authentication Routes
 
 ```
@@ -1536,13 +1517,11 @@ POST   /api/auth/register          - Register new user
 POST   /api/auth/login           - Login user
 POST   /api/auth/logout         - Logout user
 POST   /api/auth/google          - Google OAuth login
-POST   /api/auth/refresh         - Refresh access token
-POST   /api/auth/verify-email    - Verify email address
-POST   /api/auth/resend-verify    - Resend verification email
-POST   /api/auth/forgot-password - Request password reset
-POST   /api/auth/reset-password - Reset password
 POST   /api/auth/change-password - Change password (auth required)
+POST   /api/auth/send-verification-code - Send email verification (auth required)
+POST   /api/auth/verify-email    - Verify email address (auth required)
 GET    /api/auth/me             - Get current user (auth required)
+GET    /api/auth/status         - Check auth status (public)
 ```
 
 ### User Routes
@@ -1649,7 +1628,7 @@ POST   /api/payments/initiate                     - Initiate payment
 POST   /api/payments/webhook                      - Stripe webhook (raw body, before JSON parser)
 GET    /api/payments/:id                          - Get payment details
 POST   /api/payments/sslcommerz/init              - SSLCOMMERZ payment init
-POST   /api/payments/sslcommerz/return            - SSLCOMMERZ return (no CSRF)
+POST   /api/payments/sslcommerz/return            - SSLCOMMERZ return
 POST   /api/payments/sslcommerz/success           - SSLCOMMERZ success
 POST   /api/payments/sslcommerz/fail              - SSLCOMMERZ fail
 POST   /api/payments/sslcommerz/cancel            - SSLCOMMERZ cancel
@@ -1815,13 +1794,12 @@ RATE_LIMIT_MAX_REQUESTS=500
 ### Security Requirements
 
 1. **Password Hashing**: bcrypt with minimum 10 salt rounds
-2. **JWT Storage**: Access token in httpOnly cookie or Bearer header; refresh token in httpOnly cookie
+2. **JWT Storage**: Single access token in httpOnly cookie (`path=/`, `sameSite=lax`) or Bearer header
 3. **Rate Limiting**: 500 requests per 15 minutes per IP (configurable via env)
 4. **Input Validation**: Zod schemas in `src/validators/`
 5. **NoSQL Injection**: `express-mongo-sanitize` applied globally
-6. **CSRF**: State-changing `/api` routes protected via `csrf.middleware.js`
-7. **CORS**: Allow only `FRONTEND_URL` (default localhost:3000)
-8. **Helmet**: Custom Content-Security-Policy for Stripe, Google, SSLCOMMERZ
+6. **CORS**: Allow only `FRONTEND_URL` (default localhost:3000)
+7. **Helmet**: Custom Content-Security-Policy for Stripe, Google, SSLCOMMERZ
 
 ### Performance Requirements
 

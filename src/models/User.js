@@ -6,17 +6,10 @@ const addressSchema = new mongoose.Schema({
   isDefault: { type: Boolean, default: false },
   fullName: String,
   phone: String,
-  addressLine1: String,
-  addressLine2: String,
-  city: String,
-  state: String,
-  postalCode: String,
-  country: { type: String, default: 'USA' },
+  district: String,
+  thana: String,
+  address: String,
   instructions: String,
-  coordinates: {
-    lat: Number,
-    lng: Number,
-  },
 });
 
 const userSchema = new mongoose.Schema({

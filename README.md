@@ -7,10 +7,10 @@ Express.js API server for the Cold Flyer AC e-commerce platform — handles prod
 **Runtime:** Node.js 18+  
 **Framework:** Express.js 4 (CommonJS)  
 **Database:** MongoDB with Mongoose ODM  
-**Auth:** JWT (access + refresh tokens), bcrypt, Google OAuth  
+**Auth:** JWT single access token, bcrypt, Google OAuth  
 **Payments:** Stripe, SSLCOMMERZ (Bangladesh)  
 **File Storage:** Cloudinary  
-**Security:** helmet, CORS, rate limiting, CSRF, mongo-sanitize
+**Security:** helmet, CORS, rate limiting, mongo-sanitize
 
 ## Getting Started
 
@@ -34,7 +34,7 @@ Server runs at `http://localhost:5000`. The frontend at `cold-flyer/` proxies al
 |---------|-------------|
 | `node src/server.js` | Start server |
 | `npm run seed` | Seed sample data |
-| `npm run seed:admin` | Create/update admin user |
+| (register with ADMIN_EMAIL) | Auto-creates admin on signup |
 | `npm run lint` | Run ESLint |
 | `npm run format` | Format with Prettier |
 

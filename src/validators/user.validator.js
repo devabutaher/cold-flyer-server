@@ -15,17 +15,10 @@ const addAddressSchema = z.object({
     isDefault: z.boolean().default(false),
     fullName: z.string().min(1),
     phone: z.string().min(10),
-    addressLine1: z.string().min(1),
-    addressLine2: z.string().optional(),
-    city: z.string().min(1),
-    state: z.string().min(1),
-    postalCode: z.string().min(1),
-    country: z.string().default('USA'),
+    district: z.string().min(1),
+    thana: z.string().min(1),
+    address: z.string().min(1),
     instructions: z.string().optional(),
-    coordinates: z.object({
-      lat: z.number(),
-      lng: z.number(),
-    }).optional(),
   }),
 });
 
@@ -38,17 +31,10 @@ const updateAddressSchema = z.object({
     isDefault: z.boolean().optional(),
     fullName: z.string().optional(),
     phone: z.string().optional(),
-    addressLine1: z.string().optional(),
-    addressLine2: z.string().optional(),
-    city: z.string().optional(),
-    state: z.string().optional(),
-    postalCode: z.string().optional(),
-    country: z.string().optional(),
+    district: z.string().optional(),
+    thana: z.string().optional(),
+    address: z.string().optional(),
     instructions: z.string().optional(),
-    coordinates: z.object({
-      lat: z.number(),
-      lng: z.number(),
-    }).optional(),
   }),
 });
 
