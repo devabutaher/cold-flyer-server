@@ -50,4 +50,13 @@ const deleteCoupon = catchAsync(async (req, res) => {
   res.json({ success: true, message: 'Coupon deleted' });
 });
 
-module.exports = { createCoupon, getCoupons, updateCoupon, deleteCoupon };
+const toggleCouponStatus = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const coupon = await Coupon.findById(id);
+  if (!coupon) throw ApiError.notFound('Coupon not found');
+  coupon.isActive = !coupon.isActive;
+  await coupon.save();
+  res.json({ success: true, message: `Coupon ${coupon.isActive ? 'activated' : 'deactivated'}`, data: { coupon } });
+});
+
+module.exports = { createCoupon, getCoupons, updateCoupon, deleteCoupon, toggleCouponStatus };

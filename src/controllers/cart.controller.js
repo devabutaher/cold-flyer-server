@@ -1,6 +1,7 @@
 const Cart = require('../models/Cart');
 const Product = require('../models/Product');
 const Coupon = require('../models/Coupon');
+const Order = require('../models/Order');
 const ApiError = require('../utils/ApiError');
 const catchAsync = require('../utils/catchAsync');
 
@@ -126,7 +127,31 @@ const applyCoupon = catchAsync(async (req, res) => {
   }
 
   if (coupon.minOrderValue && cart.subtotal < coupon.minOrderValue) {
-    throw ApiError.badRequest(`Minimum order value of $${coupon.minOrderValue} required`);
+    throw ApiError.badRequest(`Minimum order value of ৳${coupon.minOrderValue} required`);
+  }
+
+  if (coupon.maxUsage && coupon.usedCount >= coupon.maxUsage) {
+    throw ApiError.badRequest('This coupon has reached its usage limit');
+  }
+
+  if (coupon.perUserLimit > 0) {
+    const userUsageCount = await Order.countDocuments({
+      user: req.user._id,
+      'appliedCoupon.code': coupon.code,
+    });
+    if (userUsageCount >= coupon.perUserLimit) {
+      throw ApiError.badRequest('You have already used this coupon the maximum number of times');
+    }
+  }
+
+  let calculatedDiscount = 0;
+  if (coupon.discountType === 'percentage') {
+    calculatedDiscount = (cart.subtotal * coupon.discountValue) / 100;
+    if (coupon.maxDiscount && calculatedDiscount > coupon.maxDiscount) {
+      calculatedDiscount = coupon.maxDiscount;
+    }
+  } else if (coupon.discountType === 'fixed') {
+    calculatedDiscount = coupon.discountValue;
   }
 
   cart.coupon = {
@@ -137,7 +162,21 @@ const applyCoupon = catchAsync(async (req, res) => {
 
   await cart.save();
 
-  res.json({ success: true, message: 'Coupon applied', data: { cart } });
+  res.json({
+    success: true,
+    message: 'Coupon applied',
+    data: {
+      cart,
+      calculatedDiscount,
+      coupon: {
+        code: coupon.code,
+        description: coupon.description,
+        discountType: coupon.discountType,
+        discountValue: coupon.discountValue,
+        calculatedDiscount,
+      },
+    },
+  });
 });
 
 const removeCoupon = catchAsync(async (req, res) => {

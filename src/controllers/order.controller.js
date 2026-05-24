@@ -90,7 +90,25 @@ const createOrder = catchAsync(async (req, res) => {
       validUntil: { $gte: new Date() },
     });
 
-    if (coupon && subtotal >= coupon.minOrderValue) {
+    if (coupon) {
+      if (subtotal < coupon.minOrderValue) {
+        throw ApiError.badRequest(`Minimum order value of ৳${coupon.minOrderValue} required for coupon ${coupon.code}`);
+      }
+
+      if (coupon.maxUsage && coupon.usedCount >= coupon.maxUsage) {
+        throw ApiError.badRequest('This coupon has reached its usage limit');
+      }
+
+      if (coupon.perUserLimit > 0) {
+        const userUsageCount = await Order.countDocuments({
+          user: req.user._id,
+          'appliedCoupon.code': coupon.code,
+        });
+        if (userUsageCount >= coupon.perUserLimit) {
+          throw ApiError.badRequest('You have already used this coupon the maximum number of times');
+        }
+      }
+
       if (coupon.discountType === "percentage") {
         discount = (subtotal * coupon.discountValue) / 100;
         if (coupon.maxDiscount && discount > coupon.maxDiscount) {

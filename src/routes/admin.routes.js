@@ -15,6 +15,7 @@ const {
   getCoupons,
   updateCoupon,
   deleteCoupon,
+  toggleCouponStatus,
   getTechnicians,
   createTechnician,
   getTechnician,
@@ -44,6 +45,7 @@ router.post("/coupons", createCoupon);
 router.get("/coupons", getCoupons);
 router.patch("/coupons/:id", updateCoupon);
 router.delete("/coupons/:id", deleteCoupon);
+router.patch("/coupons/:id/toggle", toggleCouponStatus);
 
 router.get("/technicians", getTechnicians);
 router.post("/technicians", createTechnician);

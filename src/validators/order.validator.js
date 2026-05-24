@@ -1,7 +1,25 @@
 const { z } = require('zod');
 
 const createOrderSchema = z.object({
-  body: z.any(),
+  body: z.object({
+    items: z
+      .array(
+        z.object({
+          product: z.string(),
+          quantity: z.number().int().positive(),
+          name: z.string().optional(),
+          price: z.number().optional(),
+        }),
+      )
+      .optional(),
+    shippingAddress: z.any().optional(),
+    billingAddress: z.any().optional(),
+    paymentMethod: z.string().optional(),
+    isPickup: z.boolean().optional(),
+    pickupShop: z.string().optional(),
+    notes: z.string().optional(),
+    couponCode: z.string().optional(),
+  }),
 });
 
 const updateOrderStatusSchema = z.object({
