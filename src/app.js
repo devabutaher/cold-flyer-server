@@ -18,6 +18,7 @@ const paymentRoutes = require("./routes/payment.routes");
 const sslcommerzRoutes = require("./routes/sslcommerz.routes");
 const { handleReturn } = require("./controllers/sslcommerz.controller");
 const adminRoutes = require("./routes/admin.routes");
+const jobApplicationRoutes = require("./routes/jobApplication.routes");
 
 const app = express();
 
@@ -152,6 +153,7 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/payments/sslcommerz", sslcommerzRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/upload", require("./routes/upload.routes"));
+app.use("/api/job-applications", jobApplicationRoutes);
 
 // ── 404 handler ────────────────────────────────────────
 app.use((req, res) => {
