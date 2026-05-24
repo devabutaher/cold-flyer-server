@@ -40,9 +40,11 @@ const serviceBookingSchema = new mongoose.Schema({
     issues: [String],
   },
   serviceAddress: {
+    fullName: String,
     phone: String,
-    addressLine1: String,
-    city: String,
+    district: String,
+    thana: String,
+    address: String,
   },
   diagnosis: String,
   workDone: String,
