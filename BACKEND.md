@@ -152,6 +152,11 @@ cold-flyer-server/
     enum: ['male', 'female', 'other', null],
     default: null
   },
+  provider: {
+    type: String,
+    enum: ['email', 'google'],
+    default: 'email'
+  },
   isEmailVerified: {
     type: Boolean,
     default: false
@@ -220,6 +225,12 @@ cold-flyer-server/
 - email: unique
 - phone: unique
 - role: 1
+
+### Auth Status Response
+
+`GET /api/auth/status` returns full user object (no `.select()` restriction):
+- Includes: `addresses`, `dateOfBirth`, `gender`, `provider`, `emailVerified`
+- Same fields as `GET /api/auth/me`
 ```
 
 ### 2. Product Schema
@@ -587,14 +598,10 @@ cold-flyer-server/
   shippingAddress: {
     fullName: String,
     phone: String,
-    addressLine1: String,
-    addressLine2: String,
-    city: String,
-    state: String,
-    postalCode: String,
-    country: String,
-    instructions: String,
-    coordinates: { lat: Number, lng: Number }
+    district: String,       // BD district (human-readable)
+    thana: String,          // BD thana/upazila (human-readable)
+    address: String,        // Full street/area/village address
+    instructions: String    // Delivery instructions
   },
   isPickup: {
     type: Boolean,
