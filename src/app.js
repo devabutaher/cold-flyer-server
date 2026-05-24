@@ -20,6 +20,7 @@ const { handleReturn } = require("./controllers/sslcommerz.controller");
 const adminRoutes = require("./routes/admin.routes");
 const couponRoutes = require("./routes/coupon.routes");
 const jobApplicationRoutes = require("./routes/jobApplication.routes");
+const blogRoutes = require("./routes/blog.routes");
 
 const app = express();
 
@@ -156,6 +157,9 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/coupons", couponRoutes);
 app.use("/api/upload", require("./routes/upload.routes"));
 app.use("/api/job-applications", jobApplicationRoutes);
+
+// ── Blog routes ────────────────────────────────────────
+app.use("/api/blogs", blogRoutes);
 
 // ── 404 handler ────────────────────────────────────────
 app.use((req, res) => {

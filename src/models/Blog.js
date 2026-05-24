@@ -38,11 +38,6 @@ const blogSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  published: {
-    type: Boolean,
-    default: false,
-  },
-  publishedAt: Date,
   views: {
     type: Number,
     default: 0,
@@ -56,28 +51,16 @@ const blogSchema = new mongoose.Schema({
     metaDescription: String,
     metaKeywords: [String],
   },
-  status: {
-    type: String,
-    enum: ['draft', 'published', 'archived'],
-    default: 'draft',
-  },
 }, {
   timestamps: true,
 });
 
 blogSchema.index({ category: 1 });
-blogSchema.index({ status: 1 });
 blogSchema.index({ featured: 1 });
-blogSchema.index({ publishedAt: -1 });
 
 blogSchema.pre('save', function (next) {
   if (this.isModified('title') && !this.slug) {
     this.slug = slugify(this.title, { lower: true, strict: true }) + '-' + Date.now();
-  }
-
-  if (this.isModified('published') && this.published && !this.publishedAt) {
-    this.publishedAt = new Date();
-    this.status = 'published';
   }
   next();
 });

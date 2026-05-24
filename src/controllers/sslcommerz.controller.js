@@ -1,5 +1,6 @@
 const logger = require('../utils/logger');
 const Order = require("../models/Order");
+const Coupon = require("../models/Coupon");
 const ApiError = require("../utils/ApiError");
 const catchAsync = require("../utils/catchAsync");
 
@@ -127,6 +128,14 @@ const handleIpn = catchAsync(async (req, res) => {
     });
 
     await order.save();
+
+    if (order.appliedCoupon?.code) {
+      await Coupon.findOneAndUpdate(
+        { code: order.appliedCoupon.code.toUpperCase() },
+        { $inc: { usedCount: 1 } },
+      );
+    }
+
     logger.info({ orderNumber: order.orderNumber }, "Order marked as paid via SSLCOMMERZ");
   } else if (status === 'FAILED') {
     order.paymentStatus = 'failed';
@@ -161,6 +170,13 @@ const handleReturn = catchAsync(async (req, res) => {
         note: 'Payment completed via SSLCOMMERZ',
       });
       await order.save();
+
+      if (order.appliedCoupon?.code) {
+        await Coupon.findOneAndUpdate(
+          { code: order.appliedCoupon.code.toUpperCase() },
+          { $inc: { usedCount: 1 } },
+        );
+      }
     }
     res.redirect(`${FRONTEND_URL}/order/${order._id}?success=true&provider=sslcommerz`);
   } else if (order) {
@@ -256,6 +272,13 @@ const verifySslcommerzPayment = catchAsync(async (req, res) => {
   });
 
   await order.save();
+
+  if (order.appliedCoupon?.code) {
+    await Coupon.findOneAndUpdate(
+      { code: order.appliedCoupon.code.toUpperCase() },
+      { $inc: { usedCount: 1 } },
+    );
+  }
 
   res.json({
     success: true,

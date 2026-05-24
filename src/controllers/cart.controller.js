@@ -108,7 +108,7 @@ const clearCart = catchAsync(async (req, res) => {
 });
 
 const applyCoupon = catchAsync(async (req, res) => {
-  const { code } = req.body;
+  const { code, items: reqItems } = req.body;
 
   const coupon = await Coupon.findOne({
     code: code.toUpperCase(),
@@ -121,7 +121,21 @@ const applyCoupon = catchAsync(async (req, res) => {
     throw ApiError.badRequest('Invalid or expired coupon');
   }
 
-  const cart = await Cart.findOne({ user: req.user._id });
+  let cart = await Cart.findOne({ user: req.user._id });
+
+  if (reqItems && reqItems.length > 0) {
+    if (!cart) {
+      cart = new Cart({ user: req.user._id });
+    }
+    cart.items = reqItems.map((item) => ({
+      product: item.productRef || item.productId,
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+    }));
+    cart.subtotal = cart.items.reduce((total, item) => total + item.price * item.quantity, 0);
+  }
+
   if (!cart) {
     throw ApiError.notFound('Cart not found');
   }
@@ -138,6 +152,7 @@ const applyCoupon = catchAsync(async (req, res) => {
     const userUsageCount = await Order.countDocuments({
       user: req.user._id,
       'appliedCoupon.code': coupon.code,
+      status: { $ne: 'cancelled' },
     });
     if (userUsageCount >= coupon.perUserLimit) {
       throw ApiError.badRequest('You have already used this coupon the maximum number of times');

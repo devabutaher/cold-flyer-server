@@ -103,6 +103,7 @@ const createOrder = catchAsync(async (req, res) => {
         const userUsageCount = await Order.countDocuments({
           user: req.user._id,
           'appliedCoupon.code': coupon.code,
+          status: { $ne: 'cancelled' },
         });
         if (userUsageCount >= coupon.perUserLimit) {
           throw ApiError.badRequest('You have already used this coupon the maximum number of times');
@@ -117,9 +118,6 @@ const createOrder = catchAsync(async (req, res) => {
       } else if (coupon.discountType === "fixed") {
         discount = coupon.discountValue;
       }
-
-      coupon.usedCount += 1;
-      await coupon.save();
 
       appliedCoupon = {
         code: coupon.code,
@@ -363,6 +361,13 @@ const confirmOrder = catchAsync(async (req, res) => {
   });
 
   await order.save();
+
+  if (order.appliedCoupon?.code) {
+    await Coupon.findOneAndUpdate(
+      { code: order.appliedCoupon.code.toUpperCase() },
+      { $inc: { usedCount: 1 } },
+    );
+  }
 
   res.json({
     success: true,

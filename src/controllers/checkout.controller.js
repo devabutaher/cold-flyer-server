@@ -1,5 +1,6 @@
 const logger = require('../utils/logger');
 const Order = require("../models/Order");
+const Coupon = require("../models/Coupon");
 const ApiError = require("../utils/ApiError");
 const catchAsync = require("../utils/catchAsync");
 
@@ -36,6 +37,13 @@ const createCheckoutSession = catchAsync(async (req, res) => {
       note: 'Order placed with Cash on Delivery',
     });
     await order.save();
+
+    if (order.appliedCoupon?.code) {
+      await Coupon.findOneAndUpdate(
+        { code: order.appliedCoupon.code.toUpperCase() },
+        { $inc: { usedCount: 1 } },
+      );
+    }
 
     return res.json({
       success: true,
@@ -174,6 +182,13 @@ const verifyPayment = catchAsync(async (req, res) => {
   });
 
   await order.save();
+
+  if (order.appliedCoupon?.code) {
+    await Coupon.findOneAndUpdate(
+      { code: order.appliedCoupon.code.toUpperCase() },
+      { $inc: { usedCount: 1 } },
+    );
+  }
 
   res.json({
     success: true,

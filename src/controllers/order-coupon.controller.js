@@ -53,6 +53,7 @@ const updateOrderCoupon = catchAsync(async (req, res) => {
       user: req.user._id,
       'appliedCoupon.code': coupon.code,
       _id: { $ne: order._id },
+      status: { $ne: 'cancelled' },
     });
     if (userUsageCount >= coupon.perUserLimit) {
       throw ApiError.badRequest('You have already used this coupon the maximum number of times');
