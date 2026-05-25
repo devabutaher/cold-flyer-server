@@ -6,7 +6,9 @@ const {
   getDashboard,
   getAnalytics,
   getAllUsers,
+  getUser,
   updateUserRole,
+  deleteUser,
   getAllProducts,
   getAllOrders,
   getAllServices,
@@ -25,6 +27,7 @@ const {
   getApplication,
   approveApplication,
   rejectApplication,
+  deleteApplication,
 } = require("../controllers/admin");
 
 router.use(authenticate);
@@ -34,7 +37,9 @@ router.get("/dashboard", getDashboard);
 router.get("/analytics", getAnalytics);
 
 router.get("/users", getAllUsers);
+router.get("/users/:id", getUser);
 router.patch("/users/:id", updateUserRole);
+router.delete("/users/:id", deleteUser);
 
 router.get("/products", getAllProducts);
 router.get("/orders", getAllOrders);
@@ -57,5 +62,6 @@ router.get("/applications", getApplications);
 router.get("/applications/:id", getApplication);
 router.patch("/applications/:id/approve", approveApplication);
 router.patch("/applications/:id/reject", rejectApplication);
+router.delete("/applications/:id", deleteApplication);
 
 module.exports = router;

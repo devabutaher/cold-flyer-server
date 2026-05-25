@@ -22,6 +22,18 @@ const getAllUsers = catchAsync(async (req, res) => {
   });
 });
 
+const getUser = catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  const user = await User.findById(id).populate('technicianProfile');
+
+  if (!user) {
+    throw ApiError.notFound('User not found');
+  }
+
+  res.json({ success: true, data: { user } });
+});
+
 const updateUserRole = catchAsync(async (req, res) => {
   const { id } = req.params;
   const { role } = req.body;
@@ -39,4 +51,25 @@ const updateUserRole = catchAsync(async (req, res) => {
   res.json({ success: true, message: 'User role updated', data: { user } });
 });
 
-module.exports = { getAllUsers, updateUserRole };
+const deleteUser = catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  if (req.user._id.toString() === id) {
+    throw ApiError.badRequest('You cannot delete your own account');
+  }
+
+  const user = await User.findById(id);
+  if (!user) {
+    throw ApiError.notFound('User not found');
+  }
+
+  if (user.technicianProfile) {
+    throw ApiError.badRequest('Remove the technician profile first before deleting this user.');
+  }
+
+  await User.findByIdAndDelete(id);
+
+  res.json({ success: true, message: 'User deleted.' });
+});
+
+module.exports = { getAllUsers, getUser, updateUserRole, deleteUser };

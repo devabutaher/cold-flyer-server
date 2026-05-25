@@ -179,4 +179,34 @@ const rejectApplication = catchAsync(async (req, res) => {
   });
 });
 
-module.exports = { submitApplication, getApplications, getApplication, approveApplication, rejectApplication };
+const deleteApplication = catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  const application = await JobApplication.findById(id);
+  if (!application) {
+    throw ApiError.notFound("Application not found");
+  }
+
+  if (application.status === "approved") {
+    const user = await User.findOne({ email: application.email.toLowerCase() });
+    if (user?.technicianProfile) {
+      throw ApiError.badRequest("Cannot delete an approved application. Remove the technician profile first.");
+    }
+  }
+
+  await JobApplication.findByIdAndDelete(id);
+
+  res.json({
+    success: true,
+    message: "Application deleted.",
+  });
+});
+
+module.exports = {
+  submitApplication,
+  getApplications,
+  getApplication,
+  approveApplication,
+  rejectApplication,
+  deleteApplication,
+};

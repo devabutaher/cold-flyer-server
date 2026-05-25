@@ -1,5 +1,5 @@
 const { getDashboard, getAnalytics } = require("./dashboard.controller");
-const { getAllUsers, updateUserRole } = require("./users.controller");
+const { getAllUsers, getUser, updateUserRole, deleteUser } = require("./users.controller");
 const { getAllProducts } = require("./products.controller");
 const { getAllOrders } = require("./orders.controller");
 const { getAllServices } = require("./services.controller");
@@ -17,13 +17,16 @@ const {
   getApplication,
   approveApplication,
   rejectApplication,
+  deleteApplication,
 } = require("../jobApplication.controller");
 
 module.exports = {
   getDashboard,
   getAnalytics,
   getAllUsers,
+  getUser,
   updateUserRole,
+  deleteUser,
   getAllProducts,
   getAllOrders,
   getAllServices,
@@ -42,4 +45,5 @@ module.exports = {
   getApplication,
   approveApplication,
   rejectApplication,
+  deleteApplication,
 };

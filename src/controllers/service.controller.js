@@ -5,6 +5,7 @@ const catchAsync = require('../utils/catchAsync');
 const logger = require('../utils/logger');
 const { createServiceNotification } = require('../services/notification.service');
 const { sendBookingConfirmationEmail } = require('../services/email.service');
+const Technician = require('../models/Technician');
 
 const getServices = catchAsync(async (req, res) => {
   const { search, category, serviceType, sortBy, page = 1, limit = 20 } = req.query;
@@ -272,10 +273,8 @@ const completeBooking = catchAsync(async (req, res) => {
   await booking.save();
 
   if (booking.technician) {
-    await import('../models/Technician').then(({ default: Technician }) => {
-      return Technician.findByIdAndUpdate(booking.technician, {
-        $inc: { completedJobs: 1 },
-      });
+    await Technician.findByIdAndUpdate(booking.technician, {
+      $inc: { completedJobs: 1 },
     });
   }
 

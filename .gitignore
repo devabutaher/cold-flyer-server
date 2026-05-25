@@ -47,4 +47,5 @@ coverage/
 *.backup
 .vercel
 
-pnpm-lock.yaml
+
+.vercel
