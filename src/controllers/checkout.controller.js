@@ -159,16 +159,22 @@ const verifyPayment = catchAsync(async (req, res) => {
   }
 
   const sessionId = order.stripeSessionId || frontendSessionId;
-  if (sessionId && stripe) {
-    try {
-      const session = await stripe.checkout.sessions.retrieve(sessionId);
-      if (session.payment_status !== 'paid' && session.payment_status !== 'no_payment_required') {
-        throw ApiError.badRequest("Payment not confirmed by Stripe");
-      }
-    } catch (err) {
-      if (err instanceof ApiError) throw err;
-      logger.warn({ err: err.message }, "Stripe session verification failed, falling back to manual verify");
+  if (!sessionId) {
+    throw ApiError.badRequest("No payment session found for this order");
+  }
+
+  if (!stripe) {
+    throw ApiError.badRequest("Payment verification unavailable");
+  }
+
+  try {
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    if (session.payment_status !== 'paid' && session.payment_status !== 'no_payment_required') {
+      throw ApiError.badRequest("Payment not confirmed by Stripe");
     }
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    throw ApiError.badRequest("Payment verification failed: unable to confirm payment with Stripe");
   }
 
   order.paymentStatus = "paid";

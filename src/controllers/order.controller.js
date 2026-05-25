@@ -318,6 +318,10 @@ const cancelOrder = catchAsync(async (req, res) => {
     throw ApiError.notFound("Order not found");
   }
 
+  if (order.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+    throw ApiError.forbidden("Not authorized to cancel this order");
+  }
+
   if (["delivered", "cancelled", "refunded"].includes(order.status)) {
     throw ApiError.badRequest("Cannot cancel this order");
   }

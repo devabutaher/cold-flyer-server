@@ -2,7 +2,14 @@ const logger = require('../utils/logger');
 const express = require('express');
 const router = express.Router();
 const Order = require('../models/Order');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+let stripe = null;
+try {
+  if (process.env.STRIPE_SECRET_KEY) {
+    stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+  }
+} catch (e) {
+  logger.warn({ err: e }, "Stripe not initialized in payment routes");
+}
 
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 

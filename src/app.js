@@ -21,6 +21,7 @@ const adminRoutes = require("./routes/admin.routes");
 const couponRoutes = require("./routes/coupon.routes");
 const jobApplicationRoutes = require("./routes/jobApplication.routes");
 const blogRoutes = require("./routes/blog.routes");
+const recentWorkRoutes = require("./routes/recentWork.routes");
 
 const app = express();
 
@@ -142,7 +143,12 @@ app.get("/api/health", (req, res) => {
 app.use("/api/auth", authRoutes);
 
 // ── SSLCOMMERZ return (no CSRF — SSLCOMMERZ POSTs directly) ──
-app.post("/api/payments/sslcommerz/return", handleReturn);
+const sslReturnLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: { success: false, message: "Too many requests, please try again later" },
+});
+app.post("/api/payments/sslcommerz/return", sslReturnLimiter, handleReturn);
 
 // ── API routes ─────────────────────────────────────────
 app.use("/api/users", userRoutes);
@@ -160,6 +166,9 @@ app.use("/api/job-applications", jobApplicationRoutes);
 
 // ── Blog routes ────────────────────────────────────────
 app.use("/api/blogs", blogRoutes);
+
+// ── Recent Works routes ────────────────────────────────
+app.use("/api/recent-works", recentWorkRoutes);
 
 // ── 404 handler ────────────────────────────────────────
 app.use((req, res) => {

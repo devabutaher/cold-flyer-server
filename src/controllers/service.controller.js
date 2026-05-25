@@ -196,6 +196,10 @@ const getBookingById = catchAsync(async (req, res) => {
     throw ApiError.notFound('Booking not found');
   }
 
+  if (booking.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+    throw ApiError.forbidden("Not authorized to view this booking");
+  }
+
   res.json({
     success: true,
     data: { booking },
@@ -297,6 +301,10 @@ const cancelBooking = catchAsync(async (req, res) => {
   const booking = await ServiceBooking.findById(id);
   if (!booking) {
     throw ApiError.notFound('Booking not found');
+  }
+
+  if (booking.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+    throw ApiError.forbidden("Not authorized to cancel this booking");
   }
 
   if (['completed', 'cancelled'].includes(booking.status)) {
