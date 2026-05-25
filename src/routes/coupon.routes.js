@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
-const { getFeaturedCoupon, lookupCoupon } = require('../controllers/coupon.controller');
+const { getFeaturedCoupon, lookupCoupon, getActiveCoupons, autoApplyCoupon } = require('../controllers/coupon.controller');
 
 const couponLookupLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -10,6 +10,8 @@ const couponLookupLimiter = rateLimit({
 });
 
 router.get('/featured', getFeaturedCoupon);
+router.get('/', getActiveCoupons);
 router.get('/lookup/:code', couponLookupLimiter, lookupCoupon);
+router.post('/auto-apply', autoApplyCoupon);
 
 module.exports = router;

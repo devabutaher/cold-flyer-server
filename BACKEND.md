@@ -29,43 +29,67 @@ cold-flyer-server/
 │   │   ├── google.js          # Google OAuth config
 │   │   └── mail.js           # Email service config
 │   ├── controllers/
-│   │   ├── admin/             # Admin-specific controllers
+│   │   ├── admin/
+│   │   │   ├── index.js
+│   │   │   ├── dashboard.controller.js
+│   │   │   ├── products.controller.js
+│   │   │   ├── orders.controller.js
+│   │   │   ├── services.controller.js
+│   │   │   ├── reviews.controller.js
+│   │   │   ├── users.controller.js
+│   │   │   ├── coupons.controller.js
+│   │   │   └── technicians.controller.js
 │   │   ├── auth.controller.js
+│   │   ├── blog.controller.js
 │   │   ├── cart.controller.js
 │   │   ├── checkout.controller.js
-
+│   │   ├── coupon.controller.js
 │   │   ├── order.controller.js
+│   │   ├── order-coupon.controller.js
 │   │   ├── payment.controller.js
 │   │   ├── product.controller.js
 │   │   ├── review.controller.js
 │   │   ├── service.controller.js
 │   │   ├── sslcommerz.controller.js
-│   │   └── user.controller.js
+│   │   ├── user.controller.js
+│   │   ├── expense.controller.js
+│   │   ├── customer.controller.js
+│   │   ├── activity.controller.js
+│   │   ├── attendance.controller.js
+│   │   ├── location.controller.js
+│   │   ├── message.controller.js
+│   │   └── report.controller.js
 │   ├── middleware/
 │   │   ├── auth.middleware.js      # JWT verification (Bearer + cookie)
-
-│   │   ├── error.middleware.js    # Global error handler
-│   │   ├── role.middleware.js     # RBAC checks
+│   │   ├── error.middleware.js     # Global error handler
+│   │   ├── role.middleware.js      # RBAC checks
 │   │   ├── upload.middleware.js    # File upload (Cloudinary)
-│   │   └── validate.middleware.js # Input validation
+│   │   └── validate.middleware.js  # Input validation
 │   ├── models/
-│   │   ├── Blog.js
+│   │   ├── User.js
+│   │   ├── Product.js
+│   │   ├── Order.js
+│   │   ├── Service.js
+│   │   ├── ServiceBooking.js
+│   │   ├── Review.js
 │   │   ├── Cart.js
 │   │   ├── Coupon.js
 │   │   ├── Notification.js
-│   │   ├── Order.js
 │   │   ├── Payment.js
-│   │   ├── Product.js
-│   │   ├── Review.js
-│   │   ├── Service.js
-│   │   ├── ServiceBooking.js
 │   │   ├── Technician.js
-│   │   └── User.js
+│   │   ├── Blog.js
+│   │   ├── Expense.js
+│   │   ├── Customer.js
+│   │   ├── ActivityLog.js
+│   │   ├── Attendance.js
+│   │   ├── LocationLog.js
+│   │   ├── MessageLog.js
+│   │   ├── JobApplication.js
+│   │   └── RecentWork.js
 │   ├── routes/
 │   │   ├── admin.routes.js
 │   │   ├── auth.routes.js
 │   │   ├── cart.routes.js
-
 │   │   ├── order.routes.js
 │   │   ├── payment.routes.js
 │   │   ├── product.routes.js
@@ -73,7 +97,16 @@ cold-flyer-server/
 │   │   ├── service.routes.js
 │   │   ├── sslcommerz.routes.js
 │   │   ├── upload.routes.js
-│   │   └── user.routes.js
+│   │   ├── user.routes.js
+│   │   ├── coupon.routes.js
+│   │   ├── blog.routes.js
+│   │   ├── expense.routes.js
+│   │   ├── customer.routes.js
+│   │   ├── activity.routes.js
+│   │   ├── attendance.routes.js
+│   │   ├── location.routes.js
+│   │   ├── message.routes.js
+│   │   └── jobApplication.routes.js
 │   ├── services/
 │   │   ├── analytics.service.js
 │   │   ├── email.service.js
@@ -123,11 +156,9 @@ cold-flyer-server/
   },
   phone: {
     type: String,
-    required: true,
+    default: '',
     trim: true
   },
-
-  // firebase authenticatin use in front end
   password: {
     type: String,
     required: true,
@@ -136,8 +167,8 @@ cold-flyer-server/
   },
   role: {
     type: String,
-    enum: ['customer', 'technician', 'manager', 'admin'],
-    default: 'customer'
+    enum: ['user', 'admin', 'technician'],
+    default: 'user'
   },
   avatar: {
     type: String,
@@ -166,6 +197,7 @@ cold-flyer-server/
     default: false
   },
   emailVerificationToken: String,
+  emailVerificationExpires: Date,
   passwordResetToken: String,
   passwordResetExpires: Date,
   addresses: [{
@@ -205,11 +237,6 @@ cold-flyer-server/
     ref: 'Technician',
     default: null
   },
-  shop: {
-    type: ObjectId,
-    ref: 'Shop',
-    default: null
-  },
   isActive: {
     type: Boolean,
     default: true
@@ -223,7 +250,6 @@ cold-flyer-server/
 
 // Indexes
 - email: unique
-- phone: unique
 - role: 1
 
 ### Auth Status Response
@@ -246,16 +272,10 @@ cold-flyer-server/
   },
   slug: {
     type: String,
-    required: true,
     unique: true
   },
-  sub: {
-    type: String,
-    trim: true
-  },
   description: {
-    type: String,
-    required: true
+    type: String
   },
   price: {
     type: Number,
@@ -263,66 +283,33 @@ cold-flyer-server/
     min: 0
   },
   originalPrice: {
-    type: Number,
-    min: 0
-  },
-  costPrice: {
-    type: Number,
-    min: 0
+    type: Number
   },
   sku: {
     type: String,
-    required: true,
-    unique: true
+    required: true
   },
-  barcode: String,
   productType: {
     type: String,
-    enum: ['unit', 'part', 'accessory'],
-    required: true
+    enum: ['unit', 'part'],
+    default: 'unit'
   },
   category: {
     type: String,
-    required: true,
-    enum: [
-      'Split AC', 'Window AC', 'Cassette AC', 'Dual Zone AC',
-      'Portable AC', 'Floor Standing AC', 'Smart Thermostat',
-      'Filters', 'Coils', 'Fan Parts', 'Electronics',
-      'Refrigerants', 'Accessories', 'Installation Parts', 'Tools'
-    ]
+    required: true
   },
   brand: {
     type: String,
-    required: true,
-    enum: [
-      'ColdFlyer', 'Daikin', 'LG', 'Samsung',
-      'Carrier', 'Mitsubishi', 'Hyundai', 'Other'
-    ]
+    required: true
   },
-  tags: [String],
-  warranty: String,
   images: [{
     url: String,
-    publicId: String,
-    alt: String,
-    isPrimary: { type: Boolean, default: false },
-    sortOrder: { type: Number, default: 0 }
+    publicId: String
   }],
-  thumbnail: String,
-  videoUrl: String,
   stock: {
     type: Number,
     default: 0,
     min: 0
-  },
-  lowStockThreshold: {
-    type: Number,
-    default: 10
-  },
-  stockStatus: {
-    type: String,
-    enum: ['in_stock', 'low_stock', 'out_of_stock', 'pre_order'],
-    default: 'in_stock'
   },
   rating: {
     type: Number,
@@ -334,114 +321,20 @@ cold-flyer-server/
     type: Number,
     default: 0
   },
-  totalSold: {
-    type: Number,
-    default: 0
+  features: [String],
+  inBox: [String],
+  specs: {
+    type: mongoose.Schema.Types.Mixed
   },
-  featured: {
-    type: Boolean,
-    default: false
+  warranty: String,
+  tag: {
+    type: String,
+    enum: ['Sale', 'New', 'Hot', 'Featured', null],
+    default: null
   },
   onSale: {
     type: Boolean,
     default: false
-  },
-  newArrival: {
-    type: Boolean,
-    default: false
-  },
-  bestSeller: {
-    type: Boolean,
-    default: false
-  },
-  featured: {
-    type: Boolean,
-    default: false
-  },
-  // Unit-specific specs
-  specs: {
-    capacity: String,
-    voltage: String,
-    powerInput: String,
-    coverageArea: String,
-    noiseLevel: String,
-    refrigerant: String,
-    starRating: String,
-    compressorType: String,
-    dimensions: String,
-    weight: String,
-    display: String,
-    connectivity: String,
-    compatibility: String,
-    powerSource: String,
-    operatingTemp: String,
-    appSupport: String
-  },
-  features: [String],
-  inBox: [String],
-  // Parts-specific
-  compatibility: [String],
-  filterClass: String,
-  material: String,
-  replaceEvery: String,
-  dimensions: String,
-  packSize: String,
-  rows: String,
-  finPitch: String,
-  maxPressure: String,
-  diameter: String,
-  blades: String,
-  shaftDiameter: String,
-  maxRPM: String,
-  motorPower: String,
-  airflow: String,
-  speeds: String,
-  ipRating: String,
-  type: String,
-  gwp: String,
-  boilingPoint: String,
-  cylinderSize: String,
-  purity: String,
-  length: String,
-  insulation: String,
-  pressure: String,
-  compatibility: String,
-  batteries: String,
-  range: String,
-  capacitance: String,
-  tolerance: String,
-  operatingTemp: String,
-  casing: String,
-  caseType: String,
-  manifoldGauge: String,
-  pipeCutter: String,
-  pieces: Number
-  },
-  weight: String,
-  dimensions: String,
-  shop: {
-    type: ObjectId,
-    ref: 'Shop',
-    required: true
-  },
-  variants: [{
-    _id: ObjectId,
-    name: String,           // 'Size', 'Color'
-    sku: String,
-    priceModifier: Number,
-    stock: Number,
-    additionalImages: [String],
-    options: [{
-      label: String,
-      value: String,
-      priceModifier: Number,
-      stock: Number
-    }]
-  }],
-  seo: {
-    metaTitle: String,
-    metaDescription: String,
-    metaKeywords: [String]
   },
   isActive: {
     type: Boolean,
@@ -451,30 +344,15 @@ cold-flyer-server/
     type: ObjectId,
     ref: 'User'
   },
-  updatedBy: {
-    type: ObjectId,
-    ref: 'User'
-  },
   createdAt: Date,
   updatedAt: Date
 }
 
 // Indexes
-- slug: unique
-- sku: unique
 - category: 1
 - brand: 1
 - productType: 1
 - price: 1
-- rating: -1
-- featured: 1
-- createdAt: -1
-- _text: [[name, description, sub]] // Text search
-
-// Compound Indexes
-- { category: 1, brand: 1 }
-- { category: 1, price: 1 }
-- { featured: 1, rating: -1 }
 ```
 
 ### 3. Order Schema
@@ -486,12 +364,11 @@ cold-flyer-server/
   orderNumber: {
     type: String,
     required: true,
-    unique: true  // Format: CF-2024-00001
+    unique: true  // Format: CF-{year}-{random6}
   },
   user: {
     type: ObjectId,
-    ref: 'User',
-    required: true
+    ref: 'User'
   },
   items: [{
     _id: ObjectId,
@@ -499,10 +376,6 @@ cold-flyer-server/
       type: ObjectId,
       ref: 'Product',
       required: true
-    },
-    shop: {
-      type: ObjectId,
-      ref: 'Shop'
     },
     name: String,
     sku: String,
@@ -513,62 +386,25 @@ cold-flyer-server/
     total: Number,
     variant: {
       variantId: ObjectId,
-      options: [{
-        label: String,
-        value: String
-      }]
+      options: [{ label: String, value: String }]
     }
   }],
-  itemCount: {
-    type: Number,
-    required: true
-  },
-  subtotal: {
-    type: Number,
-    required: true
-  },
-  discount: {
-    type: Number,
-    default: 0
-  },
-  couponDiscount: {
-    type: Number,
-    default: 0
-  },
+  itemCount: Number,
+  subtotal: Number,
+  discount: { type: Number, default: 0 },
+  couponDiscount: { type: Number, default: 0 },
   appliedCoupon: {
     code: String,
     discountType: String,
     discountValue: Number
   },
-  shippingCost: {
-    type: Number,
-    default: 0
-  },
-  tax: {
-    type: Number,
-    default: 0
-  },
-  total: {
-    type: Number,
-    required: true
-  },
-  currency: {
-    type: String,
-    default: 'USD'
-  },
+  shippingCost: { type: Number, default: 0 },
+  tax: { type: Number, default: 0 },
+  total: Number,
+  currency: { type: String, default: 'BDT' },
   status: {
     type: String,
-    enum: [
-      'pending',           // Order created, awaiting payment
-      'confirmed',        // Payment confirmed
-      'processing',      // Being prepared
-      'shipped',          // In transit
-      'out_for_delivery', // With delivery partner
-      'delivered',       // Completed
-      'cancelled',      // Cancelled
-      'refunded',       // Refunded
-      'failed'          // Payment failed
-    ],
+    enum: ['pending', 'confirmed', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'refunded', 'failed'],
     default: 'pending'
   },
   paymentStatus: {
@@ -581,10 +417,9 @@ cold-flyer-server/
     enum: ['card', 'paypal', 'bank_transfer', 'cod', 'wallet'],
     default: 'card'
   },
-  paymentId: {
-    type: ObjectId,
-    ref: 'Payment'
-  },
+  paymentId: String,
+  stripeSessionId: String,
+  sslcommerzTranId: String,
   billingAddress: {
     fullName: String,
     phone: String,
@@ -598,19 +433,12 @@ cold-flyer-server/
   shippingAddress: {
     fullName: String,
     phone: String,
-    district: String,       // BD district (human-readable)
-    thana: String,          // BD thana/upazila (human-readable)
-    address: String,        // Full street/area/village address
-    instructions: String    // Delivery instructions
+    district: String,
+    thana: String,
+    address: String,
+    instructions: String
   },
-  isPickup: {
-    type: Boolean,
-    default: false
-  },
-  pickupShop: {
-    type: ObjectId,
-    ref: 'Shop'
-  },
+  isPickup: { type: Boolean, default: false },
   estimatedDelivery: Date,
   deliveredAt: Date,
   notes: String,
@@ -626,14 +454,8 @@ cold-flyer-server/
   },
   referralCode: String,
   affiliatePartner: String,
-  calledBy: {
-    type: ObjectId,
-    ref: 'User'
-  },
-  processedBy: {
-    type: ObjectId,
-    ref: 'User'
-  },
+  calledBy: { type: ObjectId, ref: 'User' },
+  processedBy: { type: ObjectId, ref: 'User' },
   statusHistory: [{
     status: String,
     timestamp: Date,
@@ -676,10 +498,7 @@ cold-flyer-server/
     required: true,
     unique: true
   },
-  sub: String,
   description: String,
-  shortDescription: String,
-  icon: String,
   category: {
     type: String,
     enum: ['installation', 'maintenance', 'repair', 'support'],
@@ -709,52 +528,27 @@ cold-flyer-server/
     enum: ['fixed', 'hourly', 'quote'],
     default: 'fixed'
   },
-  duration: {
-    value: Number,
-    unit: { type: String, enum: ['minutes', 'hours', 'days'] }
-  },
-  coverageArea: [{
-    zone: String,
-    additionalFee: Number
-  }],
   includes: [String],
   exclusions: [String],
   requirements: [String],
   qualifications: [String],
-  image: String,
-  gallery: [String],
-  rating: {
-    type: Number,
-    default: 0
-  },
-  reviewCount: {
-    type: Number,
-    default: 0
-  },
-  bookingCount: {
-    type: Number,
-    default: 0
-  },
-  isFeatured: {
-    type: Boolean,
-    default: false
-  },
-  isActive: {
-    type: Boolean,
-    default: true
-  },
-  shop: {
-    type: ObjectId,
-    ref: 'Shop',
-    required: true
-  },
-  createdBy: {
-    type: ObjectId,
-    ref: 'User'
-  },
+  images: [{
+    url: String,
+    publicId: String
+  }],
+  rating: { type: Number, default: 0 },
+  reviewCount: { type: Number, default: 0 },
+  bookingCount: { type: Number, default: 0 },
+  isFeatured: { type: Boolean, default: true },
+  isActive: { type: Boolean, default: true },
+  createdBy: { type: ObjectId, ref: 'User' },
   createdAt: Date,
   updatedAt: Date
 }
+
+// Indexes
+- category: 1
+- isFeatured: 1
 ```
 
 ### 5. Service Booking Schema
@@ -763,89 +557,41 @@ cold-flyer-server/
 // Model: ServiceBooking.js
 {
   _id: ObjectId,
-  bookingNumber: {
-    type: String,
-    required: true,
-    unique: true  // Format: SB-2024-00001
-  },
-  user: {
-    type: ObjectId,
-    ref: 'User',
-    required: true
-  },
-  service: {
-    type: ObjectId,
-    ref: 'Service',
-    required: true
-  },
-  shop: {
-    type: ObjectId,
-    ref: 'Shop'
-  },
-  technician: {
-    type: ObjectId,
-    ref: 'Technician'
-  },
+  bookingNumber: { type: String, unique: true },  // Format: SB-{year}-{random5}
+  user: { type: ObjectId, ref: 'User', required: true },
+  service: { type: ObjectId, ref: 'Service', required: true },
+  technician: { type: ObjectId, ref: 'Technician' },
   items: [{
     service: ObjectId,
     name: String,
     price: Number,
     quantity: Number
   }],
-  subtotal: {
-    type: Number,
-    required: true
-  },
-  discount: {
-    type: Number,
-    default: 0
-  },
-  total: {
-    type: Number,
-    required: true
-  },
+  subtotal: { type: Number, required: true },
+  discount: { type: Number, default: 0 },
+  total: { type: Number, required: true },
   status: {
     type: String,
-    enum: [
-      'pending',        // Awaiting confirmation
-      'confirmed',     // Booking confirmed
-      'scheduled',     // Date assigned
-      'in_progress',   // Service being performed
-      'completed',     // Service done
-      'cancelled',     // Cancelled
-      'rescheduled'    // Date changed
-    ],
+    enum: ['pending', 'confirmed', 'scheduled', 'in_progress', 'completed', 'cancelled', 'rescheduled'],
     default: 'pending'
   },
   scheduledDate: Date,
-  scheduledTime: {
-    start: String,    // '09:00'
-    end: String       // '11:00'
-  },
+  scheduledTime: { start: String, end: String },
   completedAt: Date,
   propertyDetails: {
     propertyType: String,
-    size: String,
-    unitCount: Number,
-    currentACUnits: String,
     issues: [String]
   },
   serviceAddress: {
     fullName: String,
     phone: String,
-    email: String,
-    addressLine1: String,
-    addressLine2: String,
-    city: String,
-    state: String,
-    postalCode: String,
-    coordinates: { lat: Number, lng: Number },
-    accessInstructions: String
+    district: String,
+    thana: String,
+    address: String
   },
   diagnosis: String,
   workDone: String,
   partsUsed: [{
-    product: ObjectId,
     name: String,
     quantity: Number,
     cost: Number
@@ -854,20 +600,10 @@ cold-flyer-server/
     description: String,
     amount: Number
   }],
-  beforePhotos: [String],
   afterPhotos: [String],
-  customerRating: {
-    type: Number,
-    min: 1,
-    max: 5
-  },
+  customerRating: { type: Number, min: 1, max: 5 },
   customerReview: String,
   warrantyInfo: String,
-  followUpRequired: {
-    type: Boolean,
-    default: false
-  },
-  followUpDate: Date,
   notes: String,
   internalNotes: String,
   paymentStatus: {
@@ -875,126 +611,22 @@ cold-flyer-server/
     enum: ['pending', 'paid', 'partial'],
     default: 'pending'
   },
-  paymentMethod: String,
-  paymentId: ObjectId,
   source: {
     type: String,
     enum: ['website', 'mobile_app', 'phone', 'admin'],
     default: 'website'
   },
-  referralCode: String,
   createdAt: Date,
   updatedAt: Date
 }
+
+// Indexes
+- user: 1
+- status: 1
+- scheduledDate: 1
 ```
 
-### 6. Shop Schema
-
-```javascript
-// Model: Shop.js
-{
-  _id: ObjectId,
-  name: {
-    type: String,
-    required: true
-  },
-  slug: {
-    type: String,
-    required: true,
-    unique: true
-  },
-  description: String,
-  logo: String,
-  coverImage: String,
-  gallery: [String],
-  owner: {
-    type: ObjectId,
-    ref: 'User',
-    required: true
-  },
-  managers: [{
-    user: ObjectId,
-    role: String
-  }],
-  contact: {
-    email: String,
-    phone: String,
-    mobile: String,
-    whatsapp: String
-  },
-  address: {
-    street: String,
-    city: String,
-    state: String,
-    postalCode: String,
-    country: String,
-    coordinates: {
-      lat: Number,
-      lng: Number
-    }
-  },
-  operatingHours: [{
-    day: String,
-    open: String,
-    close: String,
-    isClosed: Boolean
-  }],
-  locations: [{
-    name: String,
-    address: String,
-    coordinates: { lat: Number, lng: Number },
-    isMain: Boolean
-  }],
-  services: [{
-    type: String,
-    description: String,
-    basePrice: Number
-  }],
-  deliveryZones: [{
-    zone: String,
-    minOrder: Number,
-    deliveryFee: Number,
-    estimatedDays: Number
-  }],
-  settings: {
-    currency: { type: String, default: 'USD' },
-    taxRate: Number,
-    minOrder: Number,
-    maxOrder: Number,
-    lowStockThreshold: Number
-  },
-  policies: {
-    returnDays: Number,
-    warrantyPolicy: String,
-    privacyPolicy: String,
-    termsOfService: String
-  },
-  isVerified: {
-    type: Boolean,
-    default: false
-  },
-  isActive: {
-    type: Boolean,
-    default: true
-  },
-  rating: {
-    type: Number,
-    default: 0
-  },
-  reviewCount: {
-    type: Number,
-    default: 0
-  },
-  totalSales: {
-    type: Number,
-    default: 0
-  },
-  createdAt: Date,
-  updatedAt: Date
-}
-```
-
-### 7. Technician Schema
+### 6. Technician Schema
 
 ```javascript
 // Model: Technician.js
@@ -1003,11 +635,6 @@ cold-flyer-server/
   user: {
     type: ObjectId,
     ref: 'User',
-    required: true
-  },
-  shop: {
-    type: ObjectId,
-    ref: 'Shop',
     required: true
   },
   employeeId: String,
@@ -1079,12 +706,29 @@ cold-flyer-server/
     default: true
   },
   hireDate: Date,
+  // Worker Management fields (from cold-flyer-old)
+  nid: { type: String, trim: true },
+  bloodGroup: {
+    type: String,
+    enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', ''],
+  },
+  emergencyContact: { type: String, trim: true },
+  salary: { type: Number, default: 0, min: 0 },
+  docs: { type: String, trim: true },
+  addedBy: { type: String },
+  addedDate: { type: String },
+  editedBy: { type: String },
+  editedDate: { type: String },
   createdAt: Date,
   updatedAt: Date
 }
+
+// Indexes
+- user: 1
+- status: 1
 ```
 
-### 8. Review Schema
+### 7. Review Schema
 
 ```javascript
 // Model: Review.js
@@ -1172,7 +816,7 @@ cold-flyer-server/
 - { product: 1, status: 1 }
 ```
 
-### 9. Cart Schema
+### 8. Cart Schema
 
 ```javascript
 // Model: Cart.js
@@ -1190,10 +834,6 @@ cold-flyer-server/
       type: ObjectId,
       ref: 'Product',
       required: true
-    },
-    shop: {
-      type: ObjectId,
-      ref: 'Shop'
     },
     name: String,
     sku: String,
@@ -1222,7 +862,7 @@ cold-flyer-server/
 }
 ```
 
-### 10. Coupon Schema
+### 9. Coupon Schema
 
 ```javascript
 // Model: Coupon.js
@@ -1291,7 +931,7 @@ cold-flyer-server/
 }
 ```
 
-### 11. Blog Schema
+### 10. Blog Schema
 
 ```javascript
 // Model: Blog.js
@@ -1359,7 +999,7 @@ cold-flyer-server/
 }
 ```
 
-### 12. Notification Schema
+### 11. Notification Schema
 
 ```javascript
 // Model: Notification.js
@@ -1403,7 +1043,7 @@ cold-flyer-server/
 }
 ```
 
-### 13. Payment Schema
+### 12. Payment Schema
 
 ```javascript
 // Model: Payment.js
@@ -1465,6 +1105,255 @@ cold-flyer-server/
 }
 ```
 
+### 13. Expense Schema
+
+```javascript
+// Model: Expense.js
+{
+  _id: ObjectId,
+  item: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  amount: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  date: {
+    type: String,
+    required: true
+  },
+  category: {
+    type: String,
+    enum: ['rent', 'utilities', 'equipment', 'transport', 'salary', 'marketing', 'other'],
+    default: 'other'
+  },
+  addedBy: { type: String },
+  addedDate: { type: String },
+  editedBy: { type: String },
+  editedDate: { type: String },
+  createdAt: Date,
+  updatedAt: Date
+}
+
+// Indexes
+- date: -1
+- category: 1
+```
+
+### 14. Customer Schema
+
+```javascript
+// Model: Customer.js
+{
+  _id: ObjectId,
+  name: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  phone: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  email: {
+    type: String,
+    trim: true,
+    lowercase: true
+  },
+  company: { type: String, trim: true },
+  address: { type: String, trim: true },
+  brand: { type: String, trim: true },
+  model: { type: String, trim: true },
+  unit: { type: String, trim: true },
+  installDate: { type: String },
+  service: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  amount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  status: {
+    type: String,
+    enum: ['active', 'blocked'],
+    default: 'active'
+  },
+  source: {
+    type: String,
+    enum: ['admin', 'website'],
+    default: 'admin'
+  },
+  addedBy: { type: String },
+  addedDate: { type: String },
+  editedBy: { type: String },
+  editedDate: { type: String },
+  createdAt: Date,
+  updatedAt: Date
+}
+
+// Indexes
+- name: 1
+- phone: 1
+- status: 1
+```
+
+### 15. Activity Log Schema
+
+```javascript
+// Model: ActivityLog.js
+{
+  _id: ObjectId,
+  user: { type: String },
+  userUID: { type: String },
+  action: { type: String, required: true },
+  detail: { type: String },
+  type: {
+    type: String,
+    enum: ['customer', 'worker', 'expense', 'user', 'login', 'attendance', 'general'],
+    default: 'general'
+  },
+  date: { type: String },
+  time: { type: String },
+  createdAt: Date,
+  updatedAt: Date
+}
+
+// Auto-prune: max 500 entries (oldest deleted on save)
+
+// Indexes
+- date: -1
+- type: 1
+- userUID: 1
+```
+
+### 16. Attendance Schema
+
+```javascript
+// Model: Attendance.js
+{
+  _id: ObjectId,
+  worker: {
+    type: ObjectId,
+    ref: 'Technician',
+    required: true
+  },
+  workerName: { type: String },
+  date: {
+    type: String,
+    required: true
+  },
+  inTime: {
+    type: String,
+    required: true
+  },
+  outTime: { type: String },
+  location: { type: String },
+  task: { type: String },
+  lat: { type: Number },
+  lng: { type: Number },
+  note: { type: String },
+  createdAt: Date,
+  updatedAt: Date
+}
+
+// Indexes
+- { worker: 1, date: 1 } (unique — one record per worker per day)
+- date: -1
+```
+
+### 17. Location Log Schema
+
+```javascript
+// Model: LocationLog.js
+{
+  _id: ObjectId,
+  worker: {
+    type: ObjectId,
+    ref: 'Technician'
+  },
+  workerName: { type: String },
+  date: { type: String },
+  time: { type: String },
+  address: { type: String },
+  lat: { type: Number },
+  lng: { type: Number },
+  task: { type: String },
+  createdAt: Date,
+  updatedAt: Date
+}
+
+// Indexes
+- date: -1
+- { worker: 1, date: -1 }
+```
+
+### 18. Message Log Schema
+
+```javascript
+// Model: MessageLog.js
+{
+  _id: ObjectId,
+  time: { type: String },
+  name: { type: String },
+  number: { type: String },
+  channel: {
+    type: String,
+    enum: ['WhatsApp', 'SMS']
+  },
+  message: { type: String },
+  createdAt: Date,
+  updatedAt: Date
+}
+
+// Indexes
+- createdAt: -1
+```
+
+### 19. JobApplication Schema
+
+```javascript
+// Model: JobApplication.js
+{
+  _id: ObjectId,
+  name: { type: String, required: true },
+  email: { type: String, required: true },
+  phone: { type: String, required: true },
+  position: { type: String, required: true },
+  message: String,
+  resume: String,
+  status: {
+    type: String,
+    enum: ['pending', 'reviewed', 'shortlisted', 'rejected'],
+    default: 'pending'
+  },
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### 20. RecentWork Schema
+
+```javascript
+// Model: RecentWork.js
+{
+  _id: ObjectId,
+  title: { type: String, required: true },
+  description: String,
+  image: { url: String, publicId: String },
+  category: String,
+  isActive: { type: Boolean, default: true },
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
 ---
 
 ## Authentication & Authorization
@@ -1473,9 +1362,8 @@ cold-flyer-server/
 
 | Role | Permissions |
 |------|-----------|
-| `customer` | Manage own profile, orders, cart, wishlist, service bookings |
-| `technician` | Customer + update own service jobs |
-| `manager` | Technician + manage shop products, orders, technicians |
+| `user` | Manage own profile, orders, cart, wishlist, service bookings |
+| `technician` | User + update own service jobs |
 | `admin` | Full access to all resources |
 
 ### JWT Token Structure
@@ -1492,26 +1380,27 @@ Access token sent via `Authorization: Bearer` header or `accessToken` httpOnly c
 
 ### Permission Matrix
 
-| Resource | Action | Customer | Technician | Manager | Admin |
-|---------|--------|----------|------------|---------|-------|
-| Users | Read Own | Yes | Yes | Yes | Yes |
-| Users | Read All | - | - | - | Yes |
-| Users | Update | Own | Own | Own | All |
-| Users | Delete | - | - | - | Yes |
-| Products | Read | Yes | Yes | Shop Only | Yes |
-| Products | Create | - | - | Yes | Yes |
-| Products | Update | - | - | Shop Only | Yes |
-| Products | Delete | - | - | Shop Only | Yes |
-| Orders | Read | Own | - | Shop Only | All |
-| Orders | Create | Yes | - | Yes | Yes |
-| Orders | Update | - | - | Yes | Yes |
-| Services | Read | Yes | Assigned | Shop Only | Yes |
-| Services | Book | Yes | - | Yes | Yes |
-| Services | Complete | - | Assigned | Yes | Yes |
-| Payments | Read | Own | - | Shop Only | All |
-| Reviews | Create | Yes | Yes | Yes | Yes |
-| Reviews | Moderate | - | - | - | Yes |
-| Analytics | Read | - | - | Shop Only | All |
+| Resource | Action | User | Technician | Admin |
+|---------|--------|------|------------|-------|
+| Users | Read Own | Yes | Yes | Yes |
+| Users | Read All | - | - | Yes |
+| Users | Update | Own | Own | All |
+| Users | Delete | - | - | Yes |
+| Products | Read | Yes | Yes | Yes |
+| Products | Create | - | - | Yes |
+| Products | Update | - | - | Yes |
+| Products | Delete | - | - | Yes |
+| Orders | Read | Own | - | All |
+| Orders | Create | Yes | - | Yes |
+| Orders | Update | - | - | Yes |
+| Services | Read | Yes | Assigned | Yes |
+| Services | Book | Yes | - | Yes |
+| Services | Complete | - | Assigned | Yes |
+| Payments | Read | Own | - | All |
+| Reviews | Create | Yes | Yes | Yes |
+| Reviews | Moderate | - | - | Yes |
+| Analytics | Read | - | - | All |
+```
 
 ---
 
@@ -1564,16 +1453,16 @@ GET    /api/products/categories      - Get categories with counts
 GET    /api/products/:id/reviews      - Get product reviews
 POST   /api/products/:id/reviews     - Add review
 
-POST   /api/products                 - Create product (manager)
-PATCH  /api/products/:id             - Update product (manager)
-DELETE /api/products/:id             - Delete product (manager)
+POST   /api/products                 - Create product (admin)
+PATCH  /api/products/:id             - Update product (admin)
+DELETE /api/products/:id             - Delete product (admin)
 PATCH  /api/products/:id/stock     - Update stock
 ```
 
 ### Order Routes
 
 ```
-GET    /api/orders                   - List orders (admin/shop)
+GET    /api/orders                   - List orders (admin)
 GET    /api/orders/:id                - Get order details
 POST   /api/orders                   - Create order
 PATCH  /api/orders/:id/status        - Update status
@@ -1595,6 +1484,16 @@ PATCH  /api/cart/apply-coupon        - Apply coupon
 DELETE /api/cart/remove-coupon      - Remove coupon
 ```
 
+### Coupon Routes
+
+```
+GET    /api/coupons/lookup/:code     - Lookup coupon by code (30 req/15min rate limit)
+GET    /api/coupons                  - List coupons (admin)
+POST   /api/coupons                  - Create coupon (admin)
+PATCH  /api/coupons/:id              - Update coupon (admin)
+DELETE /api/coupons/:id              - Delete coupon (admin)
+```
+
 ### Service Routes
 
 ```
@@ -1609,15 +1508,6 @@ PATCH  /api/bookings/:id            - Update booking
 PATCH  /api/bookings/:id/schedule    - Schedule service
 PATCH  /api/bookings/:id/complete    - Complete service
 PATCH  /api/bookings/:id/cancel      - Cancel booking
-```
-
-### Shop Routes
-
-```
-GET    /api/shops                    - List shops
-GET    /api/shops/:slug              - Get shop details
-GET    /api/shops/:slug/products     - Get shop products
-GET    /api/shops/:slug/reviews     - Get shop reviews
 ```
 
 ### Review Routes
@@ -1649,9 +1539,59 @@ GET    /api/blogs                  - List blogs
 GET    /api/blogs/:slug           - Get blog details
 GET    /api/blogs/categories      - Get blog categories
 
-POST   /api/blogs                 - Create blog (admin/manager)
+POST   /api/blogs                 - Create blog (admin)
 PATCH  /api/blogs/:id             - Update blog
 DELETE /api/blogs/:id             - Delete blog
+```
+
+### Expense Routes
+
+```
+GET    /api/expenses?category=&startDate=&endDate=&page=&limit=   (returns meta.totalAmount)
+GET    /api/expenses/:id
+POST   /api/expenses               body: { item, amount, date, category }
+PATCH  /api/expenses/:id           body: { any allowed field }
+DELETE /api/expenses/:id
+```
+
+### Customer Routes
+
+```
+GET    /api/customers?search=&status=&page=&limit=
+GET    /api/customers/:id
+POST   /api/customers              body: { name, phone, email, company, address, brand, model, unit, installDate, service, amount }
+PATCH  /api/customers/:id          body: { any allowed field }
+DELETE /api/customers/:id
+PATCH  /api/customers/:id/toggle
+```
+
+### Attendance Routes
+
+```
+GET    /api/attendance/today       (returns workers with check-in status)
+GET    /api/attendance/history?workerId=&startDate=&endDate=&page=&limit=
+POST   /api/attendance/checkin     body: { workerId, location, task, lat, lng }
+POST   /api/attendance/checkout    body: { workerId, note }
+```
+
+### Location Routes
+
+```
+GET    /api/location               (returns workers with latest location + todayLog)
+POST   /api/location               body: { workerId, address, lat, lng, task }
+```
+
+### Activity Log Routes
+
+```
+GET    /api/activity?user=&type=&startDate=&endDate=&page=&limit=   (returns logs + users for filter)
+```
+
+### Message Routes
+
+```
+GET    /api/messages?channel=&page=&limit=
+POST   /api/messages               body: { time, name, number, channel, message }
 ```
 
 ### Admin Routes
@@ -1660,7 +1600,9 @@ DELETE /api/blogs/:id             - Delete blog
 GET    /api/admin/dashboard        - Dashboard stats
 GET    /api/admin/analytics        - Analytics data
 GET    /api/admin/users           - List all users
+GET    /api/admin/users/:id       - Get single user
 PATCH  /api/admin/users/:id       - Update user role
+DELETE /api/admin/users/:id       - Delete user
 GET    /api/admin/products        - All products
 GET    /api/admin/orders          - All orders
 GET    /api/admin/services        - All services
@@ -1669,7 +1611,19 @@ POST   /api/admin/coupons         - Create coupon
 GET    /api/admin/coupons         - List coupons
 PATCH  /api/admin/coupons/:id     - Update coupon
 DELETE /api/admin/coupons/:id    - Delete coupon
+PATCH  /api/admin/coupons/:id/toggle - Toggle coupon status
 GET    /api/admin/technicians      - List technicians
+POST   /api/admin/technicians      - Create technician
+GET    /api/admin/technicians/:id  - Get technician
+PATCH  /api/admin/technicians/:id  - Update technician
+DELETE /api/admin/technicians/:id  - Delete technician
+GET    /api/admin/applications     - List job applications
+GET    /api/admin/applications/:id - Get application
+PATCH  /api/admin/applications/:id/approve - Approve application
+PATCH  /api/admin/applications/:id/reject  - Reject application
+DELETE /api/admin/applications/:id - Delete application
+GET    /api/admin/report?year=&month= - P&L report
+GET    /api/admin/report/duplicates?field=phone|address|both - Duplicate customer detection
 ```
 
 ---
@@ -1800,21 +1754,21 @@ RATE_LIMIT_MAX_REQUESTS=500
 
 ### Security Requirements
 
-1. **Password Hashing**: bcrypt with minimum 10 salt rounds
+1. **Password Hashing**: bcrypt with minimum 12 salt rounds
 2. **JWT Storage**: Single access token in httpOnly cookie (`path=/`, `sameSite=lax`) or Bearer header
 3. **Rate Limiting**: 500 requests per 15 minutes per IP (configurable via env)
 4. **Input Validation**: Zod schemas in `src/validators/`
 5. **NoSQL Injection**: `express-mongo-sanitize` applied globally
 6. **CORS**: Allow only `FRONTEND_URL` (default localhost:3000)
 7. **Helmet**: Custom Content-Security-Policy for Stripe, Google, SSLCOMMERZ
+8. **File Upload**: MIME filter (jpeg/png/webp/gif only), 5MB max size (`upload.routes.js`)
 
 ### Performance Requirements
 
 1. **Database Indexes**: Create compound indexes for common queries
 2. **Pagination**: Maximum 100 items per page
-3. **Caching**: Cache hot queries with Redis
-4. **Image Optimization**: Use WebP format, max 1200px width
-5. **Query Optimization**: Use projection, avoid N+1 queries
+3. **Image Optimization**: Use WebP format, max 1200px width
+4. **Query Optimization**: Use projection, avoid N+1 queries
 
 ### Error Handling
 

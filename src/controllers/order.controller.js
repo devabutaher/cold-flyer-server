@@ -3,6 +3,7 @@ const Product = require("../models/Product");
 const Cart = require("../models/Cart");
 const Coupon = require("../models/Coupon");
 const ApiError = require("../utils/ApiError");
+const { validateCouponScope, computeCouponDiscount } = require("../utils/coupon-scope");
 const catchAsync = require("../utils/catchAsync");
 const { createOrderNotification } = require("../services/notification.service");
 
@@ -110,14 +111,19 @@ const createOrder = catchAsync(async (req, res) => {
         }
       }
 
-      if (coupon.discountType === "percentage") {
-        discount = (subtotal * coupon.discountValue) / 100;
-        if (coupon.maxDiscount && discount > coupon.maxDiscount) {
-          discount = coupon.maxDiscount;
+      if (coupon.firstOrderOnly) {
+        const userOrderCount = await Order.countDocuments({ user: req.user._id });
+        if (userOrderCount > 0) {
+          throw ApiError.badRequest('This coupon is for first-time customers only');
         }
-      } else if (coupon.discountType === "fixed") {
-        discount = coupon.discountValue;
       }
+
+      const scopeResult = validateCouponScope(coupon, orderItems);
+      if (!scopeResult.valid) {
+        throw ApiError.badRequest(scopeResult.reason);
+      }
+
+      discount = computeCouponDiscount(coupon, scopeResult.matchingSubtotal);
 
       appliedCoupon = {
         code: coupon.code,

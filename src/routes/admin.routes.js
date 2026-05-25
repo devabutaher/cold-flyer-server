@@ -29,6 +29,7 @@ const {
   rejectApplication,
   deleteApplication,
 } = require("../controllers/admin");
+const { getReport, getDuplicateCustomers } = require("../controllers/report.controller");
 
 router.use(authenticate);
 router.use(authorize("admin"));
@@ -63,5 +64,9 @@ router.get("/applications/:id", getApplication);
 router.patch("/applications/:id/approve", approveApplication);
 router.patch("/applications/:id/reject", rejectApplication);
 router.delete("/applications/:id", deleteApplication);
+
+// Reporting
+router.get("/report", getReport);
+router.get("/report/duplicates", getDuplicateCustomers);
 
 module.exports = router;

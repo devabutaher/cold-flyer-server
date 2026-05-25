@@ -22,6 +22,12 @@ const couponRoutes = require("./routes/coupon.routes");
 const jobApplicationRoutes = require("./routes/jobApplication.routes");
 const blogRoutes = require("./routes/blog.routes");
 const recentWorkRoutes = require("./routes/recentWork.routes");
+const expenseRoutes = require("./routes/expense.routes");
+const customerRoutes = require("./routes/customer.routes");
+const activityRoutes = require("./routes/activity.routes");
+const attendanceRoutes = require("./routes/attendance.routes");
+const locationRoutes = require("./routes/location.routes");
+const messageRoutes = require("./routes/message.routes");
 
 const app = express();
 
@@ -169,6 +175,14 @@ app.use("/api/blogs", blogRoutes);
 
 // ── Recent Works routes ────────────────────────────────
 app.use("/api/recent-works", recentWorkRoutes);
+
+// ── New Feature routes ─────────────────────────────────
+app.use("/api/expenses", expenseRoutes);
+app.use("/api/customers", customerRoutes);
+app.use("/api/activity", activityRoutes);
+app.use("/api/attendance", attendanceRoutes);
+app.use("/api/location", locationRoutes);
+app.use("/api/messages", messageRoutes);
 
 // ── 404 handler ────────────────────────────────────────
 app.use((req, res) => {

@@ -83,6 +83,21 @@ const technicianSchema = new mongoose.Schema({
     default: true,
   },
   hireDate: Date,
+
+  // Worker Management fields (from cold-flyer-old)
+  nid: { type: String, trim: true },
+  bloodGroup: {
+    type: String,
+    enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', ''],
+  },
+  emergencyContact: { type: String, trim: true },
+  salary: { type: Number, default: 0, min: 0 },
+  docs: { type: String, trim: true },
+
+  addedBy: { type: String },
+  addedDate: { type: String },
+  editedBy: { type: String },
+  editedDate: { type: String },
 }, {
   timestamps: true,
 });

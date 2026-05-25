@@ -1,9 +1,10 @@
+const Coupon = require('../models/Coupon');
 const Cart = require('../models/Cart');
 const Product = require('../models/Product');
-const Coupon = require('../models/Coupon');
 const Order = require('../models/Order');
-const ApiError = require('../utils/ApiError');
 const catchAsync = require('../utils/catchAsync');
+const ApiError = require('../utils/ApiError');
+const { validateCouponScope, computeCouponDiscount } = require('../utils/coupon-scope');
 
 const getCart = catchAsync(async (req, res) => {
   const cart = await Cart.findOne({ user: req.user._id })
@@ -144,6 +145,24 @@ const applyCoupon = catchAsync(async (req, res) => {
     throw ApiError.badRequest(`Minimum order value of ৳${coupon.minOrderValue} required`);
   }
 
+  // Populate product info for scope validation
+  const productIds = [...new Set(cart.items.map((i) => i.product?.toString()).filter(Boolean))];
+  const products = productIds.length > 0
+    ? await Product.find({ _id: { $in: productIds } }).select('category brand')
+    : [];
+  const productMap = {};
+  for (const p of products) productMap[p._id.toString()] = p;
+
+  const itemsWithProducts = cart.items.map((item) => ({
+    ...item.toObject?.() || item,
+    product: productMap[item.product?.toString()] || item.product,
+  }));
+
+  const { valid: scopeValid, reason: scopeReason, matchingSubtotal } = validateCouponScope(coupon, itemsWithProducts);
+  if (!scopeValid) {
+    throw ApiError.badRequest(scopeReason);
+  }
+
   if (coupon.maxUsage && coupon.usedCount >= coupon.maxUsage) {
     throw ApiError.badRequest('This coupon has reached its usage limit');
   }
@@ -159,15 +178,14 @@ const applyCoupon = catchAsync(async (req, res) => {
     }
   }
 
-  let calculatedDiscount = 0;
-  if (coupon.discountType === 'percentage') {
-    calculatedDiscount = (cart.subtotal * coupon.discountValue) / 100;
-    if (coupon.maxDiscount && calculatedDiscount > coupon.maxDiscount) {
-      calculatedDiscount = coupon.maxDiscount;
+  if (coupon.firstOrderOnly) {
+    const userOrderCount = await Order.countDocuments({ user: req.user._id });
+    if (userOrderCount > 0) {
+      throw ApiError.badRequest('This coupon is for first-time customers only');
     }
-  } else if (coupon.discountType === 'fixed') {
-    calculatedDiscount = coupon.discountValue;
   }
+
+  const calculatedDiscount = computeCouponDiscount(coupon, matchingSubtotal);
 
   cart.coupon = {
     code: coupon.code,

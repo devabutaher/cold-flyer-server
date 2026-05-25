@@ -1,7 +1,9 @@
 const Order = require('../models/Order');
 const Coupon = require('../models/Coupon');
+const Product = require('../models/Product');
 const ApiError = require('../utils/ApiError');
 const catchAsync = require('../utils/catchAsync');
+const { validateCouponScope, computeCouponDiscount } = require('../utils/coupon-scope');
 
 const updateOrderCoupon = catchAsync(async (req, res) => {
   const { id } = req.params;
@@ -60,15 +62,32 @@ const updateOrderCoupon = catchAsync(async (req, res) => {
     }
   }
 
-  let discount = 0;
-  if (coupon.discountType === 'percentage') {
-    discount = (order.subtotal * coupon.discountValue) / 100;
-    if (coupon.maxDiscount && discount > coupon.maxDiscount) {
-      discount = coupon.maxDiscount;
+  if (coupon.firstOrderOnly) {
+    const userOrderCount = await Order.countDocuments({ user: req.user._id, _id: { $ne: order._id } });
+    if (userOrderCount > 0) {
+      throw ApiError.badRequest('This coupon is for first-time customers only');
     }
-  } else if (coupon.discountType === 'fixed') {
-    discount = coupon.discountValue;
   }
+
+  // Populate product info for scope validation
+  const productIds = [...new Set(order.items.map((i) => i.product?.toString()).filter(Boolean))];
+  const products = productIds.length > 0
+    ? await Product.find({ _id: { $in: productIds } }).select('category brand')
+    : [];
+  const productMap = {};
+  for (const p of products) productMap[p._id.toString()] = p;
+
+  const itemsWithProducts = order.items.map((item) => ({
+    ...item.toObject?.() || item,
+    product: productMap[item.product?.toString()] || item.product,
+  }));
+
+  const { valid: scopeValid, reason: scopeReason, matchingSubtotal } = validateCouponScope(coupon, itemsWithProducts);
+  if (!scopeValid) {
+    throw ApiError.badRequest(scopeReason);
+  }
+
+  const discount = computeCouponDiscount(coupon, matchingSubtotal);
 
   order.couponDiscount = discount;
   order.discount = discount;

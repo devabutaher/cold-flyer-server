@@ -41,12 +41,27 @@ const couponSchema = new mongoose.Schema({
   },
   applicableTo: {
     type: String,
-    enum: ['all', 'products', 'categories', 'brands'],
+    enum: ['all', 'products', 'categories', 'brands', 'services'],
     default: 'all',
   },
   productIds: [mongoose.Schema.Types.ObjectId],
+  serviceIds: [mongoose.Schema.Types.ObjectId],
   categoryIds: [String],
   brandIds: [String],
+  firstOrderOnly: {
+    type: Boolean,
+    default: false,
+  },
+  minItemCount: {
+    type: Number,
+    default: 0,
+  },
+  showOnBanner: {
+    type: Boolean,
+    default: true,
+  },
+  excludedProductIds: [mongoose.Schema.Types.ObjectId],
+  excludedCategoryIds: [String],
   isActive: {
     type: Boolean,
     default: true,
