@@ -69,6 +69,23 @@ const productSchema = new mongoose.Schema({
     enum: ['Sale', 'New', 'Hot', 'Featured', null],
     default: null,
   },
+  featured: {
+    type: Boolean,
+    default: false,
+  },
+  bestSeller: {
+    type: Boolean,
+    default: false,
+  },
+  newArrival: {
+    type: Boolean,
+    default: false,
+  },
+  totalSold: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
   onSale: {
     type: Boolean,
     default: false,

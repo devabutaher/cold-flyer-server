@@ -3,6 +3,7 @@ const Order = require("../models/Order");
 const Coupon = require("../models/Coupon");
 const ApiError = require("../utils/ApiError");
 const catchAsync = require("../utils/catchAsync");
+const { sendOrderConfirmationEmail } = require("../services/email.service");
 
 let stripe = null;
 try {
@@ -44,6 +45,9 @@ const createCheckoutSession = catchAsync(async (req, res) => {
         { $inc: { usedCount: 1 } },
       );
     }
+
+    await order.populate("user");
+    sendOrderConfirmationEmail(order.user?.email, order.user?.name, order).catch((err) => logger.error({ err, orderId: order._id }, "sendOrderConfirmationEmail failed"));
 
     return res.json({
       success: true,
@@ -195,6 +199,9 @@ const verifyPayment = catchAsync(async (req, res) => {
       { $inc: { usedCount: 1 } },
     );
   }
+
+  await order.populate("user");
+  sendOrderConfirmationEmail(order.user?.email, order.user?.name, order).catch((err) => logger.error({ err, orderId: order._id }, "sendOrderConfirmationEmail failed"));
 
   res.json({
     success: true,

@@ -1,7 +1,11 @@
 const logger = require('../utils/logger');
 const express = require('express');
 const router = express.Router();
+const { authenticate } = require('../middleware/auth.middleware');
+const { createPaymentIntent, handleWebhook, getPaymentById } = require('../controllers/payment.controller');
 const Order = require('../models/Order');
+const { sendOrderConfirmationEmail } = require('../services/email.service');
+
 let stripe = null;
 try {
   if (process.env.STRIPE_SECRET_KEY) {
@@ -41,6 +45,10 @@ async function updateOrderPayment(orderId, paymentData) {
   order.statusHistory.push({ status: 'paid', timestamp: new Date(), note: 'Payment completed via Stripe' });
   
   await order.save();
+
+  await order.populate('user');
+  sendOrderConfirmationEmail(order.user?.email, order.user?.name, order).catch((err) => logger.error({ err, orderNumber: order.orderNumber }, "sendOrderConfirmationEmail failed"));
+
   logger.info({ orderNumber: order.orderNumber }, 'Order marked as paid');
 }
 
@@ -84,6 +92,11 @@ const webhookHandler = async (req, res) => {
   res.json({ received: true });
 };
 
+// Stripe PaymentIntent endpoints (authenticated)
+router.post('/create-payment-intent', authenticate, createPaymentIntent);
+router.get('/:id', authenticate, getPaymentById);
+
+// Stripe webhook (raw body, no auth)
 router.post('/webhook', webhookHandler);
 
 module.exports = router;

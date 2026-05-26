@@ -3,9 +3,11 @@ const Product = require("../models/Product");
 const Cart = require("../models/Cart");
 const Coupon = require("../models/Coupon");
 const ApiError = require("../utils/ApiError");
+const logger = require("../utils/logger");
 const { validateCouponScope, computeCouponDiscount } = require("../utils/coupon-scope");
 const catchAsync = require("../utils/catchAsync");
 const { createOrderNotification } = require("../services/notification.service");
+const { sendOrderConfirmationEmail } = require("../services/email.service");
 
 const createOrder = catchAsync(async (req, res) => {
   const {
@@ -170,6 +172,8 @@ const createOrder = catchAsync(async (req, res) => {
 
   req.user.orders.push(order._id);
   await req.user.save();
+
+  sendOrderConfirmationEmail(req.user.email, req.user.name, order).catch((err) => logger.error({ err, orderId: order._id }, "sendOrderConfirmationEmail failed"));
 
   res.status(201).json({
     success: true,

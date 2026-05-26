@@ -145,7 +145,7 @@ const createBooking = catchAsync(async (req, res) => {
   req.user.serviceBookings.push(booking._id);
   await req.user.save();
 
-  sendBookingConfirmationEmail(req.user.email, req.user.name || req.user.email, booking, 'confirmed').catch(() => {});
+  sendBookingConfirmationEmail(req.user.email, req.user.name || req.user.email, booking, 'confirmed').catch((err) => logger.error({ err, bookingId: booking._id }, "sendBookingConfirmationEmail failed"));
 
   res.status(201).json({
     success: true,
@@ -241,7 +241,7 @@ const scheduleBooking = catchAsync(async (req, res) => {
 
   const populatedBooking = await ServiceBooking.findById(booking._id).populate('user', 'name email').populate('service', 'name');
   if (populatedBooking?.user?.email) {
-    sendBookingConfirmationEmail(populatedBooking.user.email, populatedBooking.user.name || populatedBooking.user.email, populatedBooking, 'scheduled').catch(() => {});
+    sendBookingConfirmationEmail(populatedBooking.user.email, populatedBooking.user.name || populatedBooking.user.email, populatedBooking, 'scheduled').catch((err) => logger.error({ err, bookingId: booking._id }, "sendBookingConfirmationEmail failed"));
   }
 
   res.json({
@@ -284,7 +284,7 @@ const completeBooking = catchAsync(async (req, res) => {
 
   const completedBooking = await ServiceBooking.findById(booking._id).populate('user', 'name email').populate('service', 'name');
   if (completedBooking?.user?.email) {
-    sendBookingConfirmationEmail(completedBooking.user.email, completedBooking.user.name || completedBooking.user.email, completedBooking, 'completed').catch(() => {});
+    sendBookingConfirmationEmail(completedBooking.user.email, completedBooking.user.name || completedBooking.user.email, completedBooking, 'completed').catch((err) => logger.error({ err, bookingId: booking._id }, "sendBookingConfirmationEmail failed"));
   }
 
   res.json({
@@ -319,7 +319,7 @@ const cancelBooking = catchAsync(async (req, res) => {
 
   const cancelledBooking = await ServiceBooking.findById(booking._id).populate('user', 'name email').populate('service', 'name');
   if (cancelledBooking?.user?.email) {
-    sendBookingConfirmationEmail(cancelledBooking.user.email, cancelledBooking.user.name || cancelledBooking.user.email, cancelledBooking, 'cancelled').catch(() => {});
+    sendBookingConfirmationEmail(cancelledBooking.user.email, cancelledBooking.user.name || cancelledBooking.user.email, cancelledBooking, 'cancelled').catch((err) => logger.error({ err, bookingId: booking._id }, "sendBookingConfirmationEmail failed"));
   }
 
   res.json({
@@ -347,7 +347,7 @@ const confirmBooking = catchAsync(async (req, res) => {
 
   const populatedBooking = await ServiceBooking.findById(booking._id).populate('user', 'name email').populate('service', 'name');
   if (populatedBooking?.user?.email) {
-    sendBookingConfirmationEmail(populatedBooking.user.email, populatedBooking.user.name || populatedBooking.user.email, populatedBooking, 'confirmed').catch(() => {});
+    sendBookingConfirmationEmail(populatedBooking.user.email, populatedBooking.user.name || populatedBooking.user.email, populatedBooking, 'confirmed').catch((err) => logger.error({ err, bookingId: booking._id }, "sendBookingConfirmationEmail failed"));
   }
 
   res.json({

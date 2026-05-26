@@ -31,7 +31,7 @@ const getProducts = catchAsync(async (req, res) => {
     if (maxPrice) query.price.$lte = Number(maxPrice);
   }
   if (minRating) query.rating = { $gte: Number(minRating) };
-  if (inStock === 'true') query.stockStatus = { $in: ['in_stock', 'low_stock'] };
+  if (inStock === 'true') query.stock = { $gt: 0 };
   if (onSale === 'true') query.onSale = true;
   if (featured === 'true') query.featured = true;
   if (search) query.$text = { $search: search };
