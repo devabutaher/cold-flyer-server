@@ -6,6 +6,7 @@ const { generateAccessToken, verifyAccessToken, parseDurationToMs } = require(".
 const { verifyGoogleToken } = require("../config/google");
 const crypto = require("crypto");
 const { sendVerificationCode: sendCodeEmail, sendPasswordResetEmail } = require("../services/email.service");
+const { uploadGoogleAvatar } = require("../services/cloudinary.service");
 
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCK_DURATION_MINUTES = 15;
@@ -143,7 +144,7 @@ const googleLogin = catchAsync(async (req, res) => {
       email,
       phone: "",
       password: sub,
-      avatar: picture || null,
+      avatar: await uploadGoogleAvatar(picture),
       role: "user",
       provider: "google",
       isEmailVerified: true,
@@ -163,7 +164,7 @@ const googleLogin = catchAsync(async (req, res) => {
       lastLogin: new Date(),
       loginAttempts: 0,
       lockUntil: null,
-      avatar: picture || user.avatar,
+      avatar: await uploadGoogleAvatar(picture) || user.avatar,
     },
   });
 

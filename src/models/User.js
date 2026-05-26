@@ -20,6 +20,10 @@ const userSchema = new mongoose.Schema({
     minLength: [2, 'Name must be at least 2 characters'],
     maxLength: [100, 'Name cannot exceed 100 characters'],
   },
+  userId: {
+    type: String,
+    unique: true,
+  },
   email: {
     type: String,
     required: [true, 'Email is required'],
@@ -118,6 +122,14 @@ const userSchema = new mongoose.Schema({
 });
 
 userSchema.index({ role: 1 });
+
+userSchema.pre('save', function (next) {
+  if (!this.userId) {
+    const { randomInt } = require('crypto');
+    this.userId = `USR-${randomInt(10000, 99999)}`;
+  }
+  next();
+});
 
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();

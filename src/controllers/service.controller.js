@@ -170,7 +170,7 @@ const getBookings = catchAsync(async (req, res) => {
   const bookings = await ServiceBooking.find(query)
     .populate('user', 'name email phone')
     .populate('service', 'name category')
-    .populate('technician', 'user')
+    .populate({ path: 'technician', select: 'employeeId specializations', populate: { path: 'user', select: 'name' } })
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(parseInt(limit));

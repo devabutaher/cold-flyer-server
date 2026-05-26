@@ -109,6 +109,7 @@ cold-flyer-server/
 │   │   └── jobApplication.routes.js
 │   ├── services/
 │   │   ├── analytics.service.js
+│   │   ├── cloudinary.service.js    # Google avatar upload to avoid 429
 │   │   ├── email.service.js
 │   │   └── notification.service.js
 │   ├── utils/
@@ -146,6 +147,10 @@ cold-flyer-server/
     trim: true,
     minLength: 2,
     maxLength: 100
+  },
+  userId: {
+    type: String,
+    unique: true  // Auto-generated: USR-{random5}
   },
   email: {
     type: String,
@@ -331,6 +336,23 @@ cold-flyer-server/
     type: String,
     enum: ['Sale', 'New', 'Hot', 'Featured', null],
     default: null
+  },
+  featured: {
+    type: Boolean,
+    default: false
+  },
+  bestSeller: {
+    type: Boolean,
+    default: false
+  },
+  newArrival: {
+    type: Boolean,
+    default: false
+  },
+  totalSold: {
+    type: Number,
+    default: 0,
+    min: 0
   },
   onSale: {
     type: Boolean,
@@ -912,10 +934,11 @@ cold-flyer-server/
   },
   applicableTo: {
     type: String,
-    enum: ['all', 'products', 'categories', 'brands'],
+    enum: ['all', 'products', 'categories', 'brands', 'services'],
     default: 'all'
   },
   productIds: [ObjectId],
+  serviceIds: [ObjectId],
   categoryIds: [String],
   brandIds: [String],
   isActive: {
@@ -1153,6 +1176,10 @@ cold-flyer-server/
     type: String,
     required: true,
     trim: true
+  },
+  customerId: {
+    type: String,
+    unique: true  // Auto-generated: CUST-{random5}
   },
   phone: {
     type: String,
@@ -1716,8 +1743,7 @@ GOOGLE_CLIENT_ID=
 
 # JWT
 JWT_SECRET=your-jwt-secret-key
-JWT_REFRESH_SECRET=your-refresh-secret-key
-JWT_EXPIRES_IN=1h
+JWT_EXPIRES_IN=30d
 JWT_REFRESH_EXPIRES_IN=7d
 
 # Cloudinary
@@ -1770,6 +1796,50 @@ RATE_LIMIT_MAX_REQUESTS=500
 3. **Image Optimization**: Use WebP format, max 1200px width
 4. **Query Optimization**: Use projection, avoid N+1 queries
 
+### Email Service (`src/services/email.service.js`)
+
+8 functions for transactional emails. All fire-and-forget (`.catch((err) => logger.error(...))`) to avoid blocking responses:
+
+| Function | Trigger | Called From |
+|----------|---------|-------------|
+| `sendVerificationEmail` | User registration | `auth.controller.js` |
+| `sendPasswordResetEmail` | Password reset request | `auth.controller.js` |
+| `sendVerificationCode` | Email change / 2FA | `user.controller.js` |
+| `sendOrderConfirmationEmail` | Payment success (COD, Stripe, SSLCOMMERZ) | `order.controller.js`, `checkout.controller.js`, `sslcommerz.controller.js`, `payment.routes.js` |
+| `sendBookingConfirmationEmail` | Service booking confirmed | `service.controller.js` |
+| `sendApplicationReceivedEmail` | Job application submitted | `application.controller.js` |
+| `sendApplicationApprovedEmail` | Job application approved | `application.controller.js` |
+| `sendApplicationRejectedEmail` | Job application rejected | `application.controller.js` |
+
+### In-App Notification Service (`src/services/notification.service.js`)
+
+7 functions for in-app notifications (stored in `Notification` model):
+
+| Function | Description |
+|----------|-------------|
+| `createOrderNotification` | Order placed / status change |
+| `createPaymentNotification` | Payment received / failed |
+| `createServiceNotification` | Service booking update |
+| `getUserNotifications` | Fetch notifications for a user (sorted newest first) |
+| `markAsRead` | Mark single notification as read |
+| `markAllAsRead` | Mark all user notifications as read |
+| `getUnreadCount` | Count unread notifications for a user |
+
+### Cloudinary Service (`src/services/cloudinary.service.js`)
+
+Uploads Google OAuth avatar images to Cloudinary to avoid 429 rate limiting from `lh3.googleusercontent.com`:
+
+| Function | Description |
+|----------|-------------|
+| `uploadGoogleAvatar(imageUrl)` | Uploads a Google avatar URL to Cloudinary `coldflyer/avatars` folder, returns `secure_url` or `null` on failure |
+
+**Used by:** `auth.controller.js` — `googleLogin()` stores Cloudinary URL instead of raw Google CDN URL for both new and returning users.
+
+```js
+// Called during Google OAuth sign-in
+const avatar = await uploadGoogleAvatar(picture);
+```
+
 ### Error Handling
 
 1. All errors caught by global error handler
@@ -1782,8 +1852,28 @@ RATE_LIMIT_MAX_REQUESTS=500
 ### Data Seeding
 
 ```bash
-npm run seed         # src/utils/seed.js — seeds products, services, users
-npm run seed:admin   # seed-admin.js — creates/updates admin from ADMIN_EMAIL/PASSWORD env vars
+npm run seed         # src/utils/seed.js — seeds 91 records across 12 models
+```
+
+Seed data details:
+- **Users**: 6 users — 1 admin (`admin@coldflyer.com`), 1 technician (`technician@coldflyer.com`), 4 regular users
+- **Products**: 20 products (10 AC units + 10 parts) with categories, brands, specs, `featured`/`bestSeller`/`newArrival` flags, and reviews
+- **Services**: 10 services across `installation`/`maintenance`/`repair` categories, each with multiple `serviceType` sub-categories
+- **Blogs**: 6 posts with categories (`Tips`, `Buying Guide`, `Industry`, `Maintenance`), SEO metadata, `featured` flags, view counts
+- **RecentWorks**: 4 portfolio entries across `installation`/`repair`/`maintenance`/`commercial` categories with before/after images
+- **Coupons**: 6 coupons — 4 active (`SUMMER25`, `FREESHIP`, `WELCOME10`, `FIXED500`), 1 expired (`EXPIRED20`), 1 service-only (`SERVICE10`)
+- **Technicians**: 2 technicians linked to user accounts, with skills, certifications, service areas
+- **Customers**: 10 customers with purchase history and contact info
+- **Expenses**: 8 expense records across 4 categories
+- **ActivityLogs**: 10 activity log entries across 5 action types
+- **Orders**: 5 orders with items, payment status, delivery tracking — auto-prunes to 500 logs via `post('save')` hook
+- **ServiceBookings**: 4 bookings across different statuses (pending, confirmed, in_progress, completed)
+
+> **Note:** `pre('save')` hooks for auto-generated `orderNumber`/`bookingNumber` don't fire during `Model.create()` in Mongoose 8.x — seed script provides explicit values (`CF-2026-10001`–`10005`, `SB-2026-00001`–`00004`).
+
+```bash
+# Admin created via seed — also auto-assigned via:
+# Register with ADMIN_EMAIL in .env to auto-assign admin role
 ```
 
 ### Testing

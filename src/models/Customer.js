@@ -6,6 +6,10 @@ const customerSchema = new mongoose.Schema({
     required: [true, 'Customer name is required'],
     trim: true,
   },
+  customerId: {
+    type: String,
+    unique: true,
+  },
   phone: {
     type: String,
     required: [true, 'Phone number is required'],
@@ -48,6 +52,14 @@ const customerSchema = new mongoose.Schema({
   editedDate: { type: String },
 }, {
   timestamps: true,
+});
+
+customerSchema.pre('save', function (next) {
+  if (!this.customerId) {
+    const { randomInt } = require('crypto');
+    this.customerId = `CUST-${randomInt(10000, 99999)}`;
+  }
+  next();
 });
 
 customerSchema.index({ name: 1 });

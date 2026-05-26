@@ -22,6 +22,17 @@ async function seed() {
     const Order = require("../models/Order");
     const ServiceBooking = require("../models/ServiceBooking");
 
+    // ── Backfill userId for existing users ────────────────────────────
+    const { randomInt } = require("crypto");
+    const usersWithoutId = await User.find({ userId: { $exists: false } });
+    for (const user of usersWithoutId) {
+      user.userId = `USR-${randomInt(10000, 99999)}`;
+      await user.save();
+    }
+    if (usersWithoutId.length > 0) {
+      console.log(`✓ Backfilled userId for ${usersWithoutId.length} existing users`);
+    }
+
     // ── Clear all collections ──────────────────────────────────────────
     const models = [
       User, Product, Service, Blog, RecentWork, Coupon,
@@ -37,7 +48,7 @@ async function seed() {
     // ══════════════════════════════════════════════════════════════════
     const users = await User.create([
       {
-        name: "Admin User", email: "admin@coldflyer.com", phone: "01700000001",
+        name: "Admin User", userId: "USR-10001", email: "admin@coldflyer.com", phone: "01700000001",
         password: "Admin@1234", role: "admin", isEmailVerified: true,
         addresses: [
           { label: "Office", isDefault: true, fullName: "Admin User", phone: "01700000001",
@@ -45,12 +56,12 @@ async function seed() {
         ],
       },
       {
-        name: "Rafiq Hasan", email: "tech@coldflyer.com", phone: "01700000002",
+        name: "Rafiq Hasan", userId: "USR-10002", email: "tech@coldflyer.com", phone: "01700000002",
         password: "Tech@1234", role: "technician", isEmailVerified: true,
         gender: "male",
       },
       {
-        name: "Fatima Begum", email: "fatima@example.com", phone: "01711112222",
+        name: "Fatima Begum", userId: "USR-10003", email: "fatima@example.com", phone: "01711112222",
         password: "User@1234", role: "user", isEmailVerified: true,
         gender: "female",
         addresses: [
@@ -59,7 +70,7 @@ async function seed() {
         ],
       },
       {
-        name: "Karim Uddin", email: "karim@example.com", phone: "01722223333",
+        name: "Karim Uddin", userId: "USR-10004", email: "karim@example.com", phone: "01722223333",
         password: "User@1234", role: "user", isEmailVerified: true,
         gender: "male",
         addresses: [
@@ -68,7 +79,7 @@ async function seed() {
         ],
       },
       {
-        name: "Nusrat Jahan", email: "nusrat@example.com", phone: "01733334444",
+        name: "Nusrat Jahan", userId: "USR-10005", email: "nusrat@example.com", phone: "01733334444",
         password: "User@1234", role: "user", isEmailVerified: true,
         gender: "female",
         addresses: [
@@ -77,7 +88,7 @@ async function seed() {
         ],
       },
       {
-        name: "Shahidul Islam", email: "shahidul@example.com", phone: "01744445555",
+        name: "Shahidul Islam", userId: "USR-10006", email: "shahidul@example.com", phone: "01744445555",
         password: "User@1234", role: "user", isEmailVerified: true,
         gender: "male",
         addresses: [
@@ -758,16 +769,16 @@ If you notice reduced airflow despite clean filters, or hear unusual sounds, cal
     //  8. CUSTOMERS (10)
     // ══════════════════════════════════════════════════════════════════
     const customers = await Customer.create([
-      { name: "Md. Shamsul Alam", phone: "01710001001", email: "shamsul@example.com", company: "Alam Group", address: "42 Gulshan Ave", brand: "Samsung", model: "Split AC 1.5 Ton", unit: "2 units", service: "Installation", amount: 70000, status: "active", source: "website" },
-      { name: "Nasrin Sultana", phone: "01710001002", email: "nasrin@example.com", brand: "LG", model: "Dual Inverter 2 Ton", unit: "1 unit", service: "Repair", amount: 4500, status: "active", source: "admin" },
-      { name: "Abdur Rahim", phone: "01710001003", company: "Rahim Enterprise", address: "55 Motijheel C/A", brand: "Daikin", model: "Cassette 3 Ton", unit: "4 units", service: "Installation", amount: 450000, status: "active", source: "website" },
-      { name: "Taslima Akhter", phone: "01710001004", address: "78 Elephant Road", brand: "Gree", model: "Window AC 1 Ton", unit: "1 unit", service: "Deep Cleaning", amount: 1500, status: "active", source: "admin" },
-      { name: "Kamal Hossain", phone: "01710001005", email: "kamal@example.com", address: "34 Dhanmondi 27", brand: "General", model: "Split 1 Ton", unit: "3 units", service: "Maintenance", amount: 8000, status: "active", source: "website" },
-      { name: "Shamima Yeasmin", phone: "01710001006", address: "12 Banani DOHS", brand: "Samsung", model: "Wind-Free 2 Ton", unit: "2 units", service: "Installation", amount: 140000, status: "active", source: "admin" },
-      { name: "Faruk Ahmed", phone: "01710001007", company: "Faruk Electronics", address: "89 New Market", brand: "Mitsubishi", model: "Heavy Duty 2 Ton", unit: "1 unit", service: "Repair", amount: 3200, status: "active", source: "website" },
-      { name: "Jhorna Biswas", phone: "01710001008", address: "56 Shantinagar", brand: "Panasonic", model: "Inverter 1.5 Ton", unit: "1 unit", service: "Gas Refill", amount: 3000, status: "active", source: "admin" },
-      { name: "Mizanur Rahman", phone: "01710001009", address: "23 Mohammadpur", brand: "LG", model: "Dual Inverter 1.5 Ton", unit: "1 unit", service: "Emergency Repair", amount: 2500, status: "blocked", source: "website" },
-      { name: "Roksana Parvin", phone: "01710001010", email: "roksana@example.com", address: "67 Uttara Sector 4", brand: "Samsung", model: "Split 1 Ton", unit: "2 units", service: "Health Checkup", amount: 1600, status: "active", source: "admin" },
+      { name: "Md. Shamsul Alam", customerId: "CUST-10001", phone: "01710001001", email: "shamsul@example.com", company: "Alam Group", address: "42 Gulshan Ave", brand: "Samsung", model: "Split AC 1.5 Ton", unit: "2 units", service: "Installation", amount: 70000, status: "active", source: "website" },
+      { name: "Nasrin Sultana", customerId: "CUST-10002", phone: "01710001002", email: "nasrin@example.com", brand: "LG", model: "Dual Inverter 2 Ton", unit: "1 unit", service: "Repair", amount: 4500, status: "active", source: "admin" },
+      { name: "Abdur Rahim", customerId: "CUST-10003", phone: "01710001003", company: "Rahim Enterprise", address: "55 Motijheel C/A", brand: "Daikin", model: "Cassette 3 Ton", unit: "4 units", service: "Installation", amount: 450000, status: "active", source: "website" },
+      { name: "Taslima Akhter", customerId: "CUST-10004", phone: "01710001004", address: "78 Elephant Road", brand: "Gree", model: "Window AC 1 Ton", unit: "1 unit", service: "Deep Cleaning", amount: 1500, status: "active", source: "admin" },
+      { name: "Kamal Hossain", customerId: "CUST-10005", phone: "01710001005", email: "kamal@example.com", address: "34 Dhanmondi 27", brand: "General", model: "Split 1 Ton", unit: "3 units", service: "Maintenance", amount: 8000, status: "active", source: "website" },
+      { name: "Shamima Yeasmin", customerId: "CUST-10006", phone: "01710001006", address: "12 Banani DOHS", brand: "Samsung", model: "Wind-Free 2 Ton", unit: "2 units", service: "Installation", amount: 140000, status: "active", source: "admin" },
+      { name: "Faruk Ahmed", customerId: "CUST-10007", phone: "01710001007", company: "Faruk Electronics", address: "89 New Market", brand: "Mitsubishi", model: "Heavy Duty 2 Ton", unit: "1 unit", service: "Repair", amount: 3200, status: "active", source: "website" },
+      { name: "Jhorna Biswas", customerId: "CUST-10008", phone: "01710001008", address: "56 Shantinagar", brand: "Panasonic", model: "Inverter 1.5 Ton", unit: "1 unit", service: "Gas Refill", amount: 3000, status: "active", source: "admin" },
+      { name: "Mizanur Rahman", customerId: "CUST-10009", phone: "01710001009", address: "23 Mohammadpur", brand: "LG", model: "Dual Inverter 1.5 Ton", unit: "1 unit", service: "Emergency Repair", amount: 2500, status: "blocked", source: "website" },
+      { name: "Roksana Parvin", customerId: "CUST-10010", phone: "01710001010", email: "roksana@example.com", address: "67 Uttara Sector 4", brand: "Samsung", model: "Split 1 Ton", unit: "2 units", service: "Health Checkup", amount: 1600, status: "active", source: "admin" },
     ]);
     console.log(`✓ Seeded ${customers.length} customers`);
 
