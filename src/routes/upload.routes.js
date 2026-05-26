@@ -1,18 +1,18 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const multer = require('multer');
-const { authenticate } = require('../middleware/auth.middleware');
-const { cloudinary } = require('../config/cloudinary');
-const ApiError = require('../utils/ApiError');
-const catchAsync = require('../utils/catchAsync');
+const multer = require("multer");
+const { authenticate } = require("../middleware/auth.middleware");
+const { cloudinary } = require("../config/cloudinary");
+const ApiError = require("../utils/ApiError");
+const catchAsync = require("../utils/catchAsync");
 
 const storage = multer.memoryStorage();
 const fileFilter = (req, file, cb) => {
-  const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+  const allowedMimes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
   if (allowedMimes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new ApiError(400, 'Only JPEG, PNG, WebP, and GIF images are allowed'), false);
+    cb(new ApiError(400, "Only JPEG, PNG, WebP, and GIF images are allowed"), false);
   }
 };
 const upload = multer({
@@ -23,14 +23,14 @@ const upload = multer({
 
 const uploadImage = catchAsync(async (req, res) => {
   if (!req.file) {
-    throw ApiError.badRequest('No file uploaded');
+    throw ApiError.badRequest("No file uploaded");
   }
 
-  const b64 = Buffer.from(req.file.buffer).toString('base64');
+  const b64 = Buffer.from(req.file.buffer).toString("base64");
   const dataURI = `data:${req.file.mimetype};base64,${b64}`;
 
   const result = await cloudinary.uploader.upload(dataURI, {
-    folder: 'coldflyer',
+    folder: "coldflyer",
   });
 
   res.status(200).json({
@@ -42,6 +42,6 @@ const uploadImage = catchAsync(async (req, res) => {
   });
 });
 
-router.post('/', authenticate, upload.single('image'), uploadImage);
+router.post("/", authenticate, upload.single("image"), uploadImage);
 
 module.exports = router;

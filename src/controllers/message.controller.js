@@ -1,5 +1,5 @@
-const MessageLog = require('../models/MessageLog');
-const catchAsync = require('../utils/catchAsync');
+const MessageLog = require("../models/MessageLog");
+const catchAsync = require("../utils/catchAsync");
 
 const getMessages = catchAsync(async (req, res) => {
   const { page = 1, limit = 100, channel } = req.query;
@@ -25,11 +25,11 @@ const logMessage = catchAsync(async (req, res) => {
   const { time, name, number, channel, message } = req.body;
 
   const log = await MessageLog.create({
-    time: time || new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-    name: name || '',
-    number: number || '',
-    channel: channel || 'WhatsApp',
-    message: message || '',
+    time: time || new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
+    name: name || "",
+    number: number || "",
+    channel: channel || "WhatsApp",
+    message: message || "",
   });
 
   res.status(201).json({ success: true, data: { message: log } });

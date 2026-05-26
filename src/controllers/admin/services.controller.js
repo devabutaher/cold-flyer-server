@@ -1,5 +1,5 @@
-const Service = require('../../models/Service');
-const catchAsync = require('../../utils/catchAsync');
+const Service = require("../../models/Service");
+const catchAsync = require("../../utils/catchAsync");
 
 const getAllServices = catchAsync(async (req, res) => {
   const { page = 1, limit = 20 } = req.query;

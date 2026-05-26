@@ -1,7 +1,7 @@
-const Review = require('../models/Review');
-const Product = require('../models/Product');
-const ApiError = require('../utils/ApiError');
-const catchAsync = require('../utils/catchAsync');
+const Review = require("../models/Review");
+const Product = require("../models/Product");
+const ApiError = require("../utils/ApiError");
+const catchAsync = require("../utils/catchAsync");
 
 const getReviews = catchAsync(async (req, res) => {
   const { product, service, technician, status, page = 1, limit = 20 } = req.query;
@@ -12,10 +12,10 @@ const getReviews = catchAsync(async (req, res) => {
   if (service) query.service = service;
   if (technician) query.technician = technician;
   if (status) query.status = status;
-  else if (req.user?.role !== 'admin') query.status = 'approved';
+  else if (req.user?.role !== "admin") query.status = "approved";
 
   const reviews = await Review.find(query)
-    .populate('user', 'name avatar')
+    .populate("user", "name avatar")
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(parseInt(limit));
@@ -35,7 +35,7 @@ const moderateReview = catchAsync(async (req, res) => {
 
   const review = await Review.findById(id);
   if (!review) {
-    throw ApiError.notFound('Review not found');
+    throw ApiError.notFound("Review not found");
   }
 
   review.status = status;
@@ -53,7 +53,7 @@ const moderateReview = catchAsync(async (req, res) => {
 
   res.json({
     success: true,
-    message: 'Review moderated successfully',
+    message: "Review moderated successfully",
     data: { review },
   });
 });
@@ -63,13 +63,13 @@ const deleteReview = catchAsync(async (req, res) => {
 
   const review = await Review.findById(id);
   if (!review) {
-    throw ApiError.notFound('Review not found');
+    throw ApiError.notFound("Review not found");
   }
 
   await review.deleteOne();
 
   if (review.product) {
-    const reviews = await Review.find({ product: review.product, status: 'approved' });
+    const reviews = await Review.find({ product: review.product, status: "approved" });
     const avgRating = reviews.length ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;
     await Product.findByIdAndUpdate(review.product, {
       rating: Math.round(avgRating * 10) / 10,
@@ -79,7 +79,7 @@ const deleteReview = catchAsync(async (req, res) => {
 
   res.json({
     success: true,
-    message: 'Review deleted successfully',
+    message: "Review deleted successfully",
   });
 });
 
@@ -88,7 +88,7 @@ const markHelpful = catchAsync(async (req, res) => {
 
   const review = await Review.findById(id);
   if (!review) {
-    throw ApiError.notFound('Review not found');
+    throw ApiError.notFound("Review not found");
   }
 
   const alreadyMarked = review.helpfulBy.some((h) => h.user.toString() === req.user._id.toString());
@@ -105,7 +105,7 @@ const markHelpful = catchAsync(async (req, res) => {
 
   res.json({
     success: true,
-    message: alreadyMarked ? 'Removed helpful' : 'Marked as helpful',
+    message: alreadyMarked ? "Removed helpful" : "Marked as helpful",
   });
 });
 

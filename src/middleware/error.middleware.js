@@ -1,14 +1,14 @@
-const logger = require('../utils/logger');
-const ApiError = require('../utils/ApiError');
+const logger = require("../utils/logger");
+const ApiError = require("../utils/ApiError");
 
 const errorHandler = (err, req, res, _next) => {
   let error = err;
   let statusCode = err.statusCode || 500;
-  let message = err.message || 'Internal Server Error';
+  let message = err.message || "Internal Server Error";
 
-  if (err.name === 'CastError' && err.kind === 'ObjectId') {
+  if (err.name === "CastError" && err.kind === "ObjectId") {
     statusCode = 400;
-    message = 'Invalid ID format';
+    message = "Invalid ID format";
     error = ApiError.badRequest(message);
   }
 
@@ -19,29 +19,29 @@ const errorHandler = (err, req, res, _next) => {
     error = ApiError.conflict(message);
   }
 
-  if (err.name === 'ValidationError') {
+  if (err.name === "ValidationError") {
     const errors = Object.values(err.errors).map((e) => ({
       field: e.path,
       message: e.message,
     }));
     return res.status(400).json({
       success: false,
-      message: 'Validation failed',
+      message: "Validation failed",
       errors,
-      code: 'VALIDATION_ERROR',
+      code: "VALIDATION_ERROR",
       requestId: req?.id,
     });
   }
 
-  if (err.name === 'JsonWebTokenError') {
+  if (err.name === "JsonWebTokenError") {
     statusCode = 401;
-    message = 'Invalid token';
+    message = "Invalid token";
     error = ApiError.unauthorized(message);
   }
 
-  if (err.name === 'TokenExpiredError') {
+  if (err.name === "TokenExpiredError") {
     statusCode = 401;
-    message = 'Token expired';
+    message = "Token expired";
     error = ApiError.unauthorized(message);
   }
 
@@ -52,7 +52,7 @@ const errorHandler = (err, req, res, _next) => {
   const response = {
     success: false,
     message,
-    code: error.code || 'ERROR',
+    code: error.code || "ERROR",
     requestId: req?.id,
   };
 
@@ -60,7 +60,7 @@ const errorHandler = (err, req, res, _next) => {
     response.errors = err.errors;
   }
 
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env.NODE_ENV === "development") {
     response.stack = err.stack;
   }
 

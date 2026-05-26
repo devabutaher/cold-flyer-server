@@ -87,8 +87,7 @@ serviceSchema.index({ isFeatured: 1 });
 
 serviceSchema.pre("save", function (next) {
   if (this.isModified("name") && !this.slug) {
-    this.slug =
-      slugify(this.name, { lower: true, strict: true }) + "-" + Date.now();
+    this.slug = slugify(this.name, { lower: true, strict: true }) + "-" + Date.now();
   }
   next();
 });

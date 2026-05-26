@@ -1,4 +1,4 @@
-const logger = require('../utils/logger');
+const logger = require("../utils/logger");
 const Order = require("../models/Order");
 const Coupon = require("../models/Coupon");
 const ApiError = require("../utils/ApiError");
@@ -18,41 +18,40 @@ const createCheckoutSession = catchAsync(async (req, res) => {
   const { id } = req.params;
   const { provider } = req.body;
 
-  if (provider === 'sslcommerz') {
-    const sslcommerzController = require('./sslcommerz.controller');
+  if (provider === "sslcommerz") {
+    const sslcommerzController = require("./sslcommerz.controller");
     req.body.orderId = id;
     return sslcommerzController.initPayment(req, res);
   }
 
-  if (provider === 'cod') {
+  if (provider === "cod") {
     const order = await Order.findById(id);
     if (!order) throw ApiError.notFound("Order not found");
     if (!order.user || order.user.toString() !== req.user._id.toString()) throw ApiError.forbidden("Not authorized");
     if (order.paymentStatus === "paid") throw ApiError.badRequest("Order already paid");
 
-    order.status = 'confirmed';
-    order.paymentMethod = 'cod';
+    order.status = "confirmed";
+    order.paymentMethod = "cod";
     order.statusHistory.push({
-      status: 'confirmed',
+      status: "confirmed",
       timestamp: new Date(),
-      note: 'Order placed with Cash on Delivery',
+      note: "Order placed with Cash on Delivery",
     });
     await order.save();
 
     if (order.appliedCoupon?.code) {
-      await Coupon.findOneAndUpdate(
-        { code: order.appliedCoupon.code.toUpperCase() },
-        { $inc: { usedCount: 1 } },
-      );
+      await Coupon.findOneAndUpdate({ code: order.appliedCoupon.code.toUpperCase() }, { $inc: { usedCount: 1 } });
     }
 
     await order.populate("user");
-    sendOrderConfirmationEmail(order.user?.email, order.user?.name, order).catch((err) => logger.error({ err, orderId: order._id }, "sendOrderConfirmationEmail failed"));
+    sendOrderConfirmationEmail(order.user?.email, order.user?.name, order).catch((err) =>
+      logger.error({ err, orderId: order._id }, "sendOrderConfirmationEmail failed"),
+    );
 
     return res.json({
       success: true,
       data: { orderId: order._id },
-      message: 'Order placed successfully',
+      message: "Order placed successfully",
     });
   }
 
@@ -62,7 +61,10 @@ const createCheckoutSession = catchAsync(async (req, res) => {
   }
 
   if (!order.user || order.user.toString() !== req.user._id.toString()) {
-    logger.warn({ orderId: order._id, orderUser: order.user?.toString(), reqUser: req.user._id.toString() }, "Order ownership check failed");
+    logger.warn(
+      { orderId: order._id, orderUser: order.user?.toString(), reqUser: req.user._id.toString() },
+      "Order ownership check failed",
+    );
     throw ApiError.forbidden("Not authorized");
   }
 
@@ -173,7 +175,7 @@ const verifyPayment = catchAsync(async (req, res) => {
 
   try {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
-    if (session.payment_status !== 'paid' && session.payment_status !== 'no_payment_required') {
+    if (session.payment_status !== "paid" && session.payment_status !== "no_payment_required") {
       throw ApiError.badRequest("Payment not confirmed by Stripe");
     }
   } catch (err) {
@@ -194,14 +196,13 @@ const verifyPayment = catchAsync(async (req, res) => {
   await order.save();
 
   if (order.appliedCoupon?.code) {
-    await Coupon.findOneAndUpdate(
-      { code: order.appliedCoupon.code.toUpperCase() },
-      { $inc: { usedCount: 1 } },
-    );
+    await Coupon.findOneAndUpdate({ code: order.appliedCoupon.code.toUpperCase() }, { $inc: { usedCount: 1 } });
   }
 
   await order.populate("user");
-  sendOrderConfirmationEmail(order.user?.email, order.user?.name, order).catch((err) => logger.error({ err, orderId: order._id }, "sendOrderConfirmationEmail failed"));
+  sendOrderConfirmationEmail(order.user?.email, order.user?.name, order).catch((err) =>
+    logger.error({ err, orderId: order._id }, "sendOrderConfirmationEmail failed"),
+  );
 
   res.json({
     success: true,

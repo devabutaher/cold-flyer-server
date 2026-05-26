@@ -164,7 +164,7 @@ const googleLogin = catchAsync(async (req, res) => {
       lastLogin: new Date(),
       loginAttempts: 0,
       lockUntil: null,
-      avatar: await uploadGoogleAvatar(picture) || user.avatar,
+      avatar: (await uploadGoogleAvatar(picture)) || user.avatar,
     },
   });
 

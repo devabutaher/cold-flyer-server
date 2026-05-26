@@ -1,5 +1,5 @@
-const { z } = require('zod');
-const ApiError = require('../utils/ApiError');
+const { z } = require("zod");
+const ApiError = require("../utils/ApiError");
 
 const validate = (schema) => (req, res, next) => {
   try {
@@ -16,10 +16,10 @@ const validate = (schema) => (req, res, next) => {
   } catch (error) {
     if (error instanceof z.ZodError) {
       const errors = error.errors.map((err) => ({
-        field: err.path.join('.'),
+        field: err.path.join("."),
         message: err.message,
       }));
-      return next(ApiError.badRequest('Validation failed', errors));
+      return next(ApiError.badRequest("Validation failed", errors));
     }
     next(error);
   }

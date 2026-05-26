@@ -1,17 +1,15 @@
-const User = require('../models/User');
-const Order = require('../models/Order');
-const ApiError = require('../utils/ApiError');
-const catchAsync = require('../utils/catchAsync');
-const { cloudinary } = require('../config/cloudinary');
-const { getUserNotifications, markAsRead, markAllAsRead } = require('../services/notification.service');
+const User = require("../models/User");
+const Order = require("../models/Order");
+const ApiError = require("../utils/ApiError");
+const catchAsync = require("../utils/catchAsync");
+const { cloudinary } = require("../config/cloudinary");
+const { getUserNotifications, markAsRead, markAllAsRead } = require("../services/notification.service");
 
 const getProfile = catchAsync(async (req, res) => {
-  const user = await User.findById(req.user._id)
-    .populate('cart')
-    .populate({
-      path: 'wishlist',
-      select: 'name slug images price rating',
-    });
+  const user = await User.findById(req.user._id).populate("cart").populate({
+    path: "wishlist",
+    select: "name slug images price rating",
+  });
 
   res.json({
     success: true,
@@ -25,43 +23,39 @@ const updateProfile = catchAsync(async (req, res) => {
   const user = await User.findByIdAndUpdate(
     req.user._id,
     { name, phone, dateOfBirth, gender },
-    { new: true, runValidators: true }
+    { new: true, runValidators: true },
   );
 
   res.json({
     success: true,
-    message: 'Profile updated successfully',
+    message: "Profile updated successfully",
     data: { user },
   });
 });
 
 const updateAvatar = catchAsync(async (req, res) => {
   if (!req.file) {
-    throw ApiError.badRequest('Please upload an image');
+    throw ApiError.badRequest("Please upload an image");
   }
 
-  const b64 = Buffer.from(req.file.buffer).toString('base64');
+  const b64 = Buffer.from(req.file.buffer).toString("base64");
   const dataURI = `data:${req.file.mimetype};base64,${b64}`;
 
   const result = await cloudinary.uploader.upload(dataURI, {
-    folder: 'coldflyer',
+    folder: "coldflyer",
   });
 
-  const user = await User.findByIdAndUpdate(
-    req.user._id,
-    { avatar: result.secure_url },
-    { new: true }
-  );
+  const user = await User.findByIdAndUpdate(req.user._id, { avatar: result.secure_url }, { new: true });
 
   res.json({
     success: true,
-    message: 'Avatar updated successfully',
+    message: "Avatar updated successfully",
     data: { avatar: user.avatar },
   });
 });
 
 const getAddresses = catchAsync(async (req, res) => {
-  const user = await User.findById(req.user._id).select('addresses defaultAddress');
+  const user = await User.findById(req.user._id).select("addresses defaultAddress");
 
   res.json({
     success: true,
@@ -86,7 +80,7 @@ const addAddress = catchAsync(async (req, res) => {
 
   res.status(201).json({
     success: true,
-    message: 'Address added successfully',
+    message: "Address added successfully",
     data: { addresses: user.addresses },
   });
 });
@@ -97,7 +91,7 @@ const updateAddress = catchAsync(async (req, res) => {
 
   const address = user.addresses.id(id);
   if (!address) {
-    throw ApiError.notFound('Address not found');
+    throw ApiError.notFound("Address not found");
   }
 
   if (req.body.isDefault) {
@@ -114,7 +108,7 @@ const updateAddress = catchAsync(async (req, res) => {
 
   res.json({
     success: true,
-    message: 'Address updated successfully',
+    message: "Address updated successfully",
     data: { addresses: user.addresses },
   });
 });
@@ -125,7 +119,7 @@ const deleteAddress = catchAsync(async (req, res) => {
 
   const address = user.addresses.id(id);
   if (!address) {
-    throw ApiError.notFound('Address not found');
+    throw ApiError.notFound("Address not found");
   }
 
   if (user.defaultAddress?.toString() === id) {
@@ -137,7 +131,7 @@ const deleteAddress = catchAsync(async (req, res) => {
 
   res.json({
     success: true,
-    message: 'Address deleted successfully',
+    message: "Address deleted successfully",
   });
 });
 
@@ -147,7 +141,7 @@ const setDefaultAddress = catchAsync(async (req, res) => {
 
   const address = user.addresses.id(id);
   if (!address) {
-    throw ApiError.notFound('Address not found');
+    throw ApiError.notFound("Address not found");
   }
 
   user.addresses.forEach((addr) => (addr.isDefault = false));
@@ -158,7 +152,7 @@ const setDefaultAddress = catchAsync(async (req, res) => {
 
   res.json({
     success: true,
-    message: 'Default address set successfully',
+    message: "Default address set successfully",
   });
 });
 
@@ -174,14 +168,17 @@ const getOrders = catchAsync(async (req, res) => {
 
   res.json({
     success: true,
-    data: { orders, meta: { page: parseInt(page), limit: parseInt(limit), total, totalPages: Math.ceil(total / limit) } },
+    data: {
+      orders,
+      meta: { page: parseInt(page), limit: parseInt(limit), total, totalPages: Math.ceil(total / limit) },
+    },
   });
 });
 
 const getWishlist = catchAsync(async (req, res) => {
   const user = await User.findById(req.user._id).populate({
-    path: 'wishlist',
-    select: 'name slug images price originalPrice rating reviewCount stockStatus',
+    path: "wishlist",
+    select: "name slug images price originalPrice rating reviewCount stockStatus",
   });
 
   res.json({
@@ -196,7 +193,7 @@ const addToWishlist = catchAsync(async (req, res) => {
   const user = await User.findById(req.user._id);
 
   if (user.wishlist.includes(productId)) {
-    throw ApiError.conflict('Product already in wishlist');
+    throw ApiError.conflict("Product already in wishlist");
   }
 
   user.wishlist.push(productId);
@@ -204,7 +201,7 @@ const addToWishlist = catchAsync(async (req, res) => {
 
   res.status(201).json({
     success: true,
-    message: 'Added to wishlist',
+    message: "Added to wishlist",
   });
 });
 
@@ -217,7 +214,7 @@ const removeFromWishlist = catchAsync(async (req, res) => {
 
   res.json({
     success: true,
-    message: 'Removed from wishlist',
+    message: "Removed from wishlist",
   });
 });
 
@@ -238,12 +235,12 @@ const markNotificationRead = catchAsync(async (req, res) => {
   const notification = await markAsRead(id, req.user._id);
 
   if (!notification) {
-    throw ApiError.notFound('Notification not found');
+    throw ApiError.notFound("Notification not found");
   }
 
   res.json({
     success: true,
-    message: 'Notification marked as read',
+    message: "Notification marked as read",
   });
 });
 
@@ -252,7 +249,7 @@ const markAllNotificationsRead = catchAsync(async (req, res) => {
 
   res.json({
     success: true,
-    message: 'All notifications marked as read',
+    message: "All notifications marked as read",
   });
 });
 

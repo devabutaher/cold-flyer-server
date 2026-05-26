@@ -21,9 +21,7 @@ const createOrder = catchAsync(async (req, res) => {
     couponCode,
   } = req.body;
 
-  const cart = await Cart.findOne({ user: req.user._id }).populate(
-    "items.product",
-  );
+  const cart = await Cart.findOne({ user: req.user._id }).populate("items.product");
 
   const itemsToProcess =
     requestItems && requestItems.length > 0
@@ -43,9 +41,7 @@ const createOrder = catchAsync(async (req, res) => {
     const productId = item.product?._id || item.product || item.productId;
 
     if (!productId) {
-      throw ApiError.badRequest(
-        `Invalid product ID: ${item.name || item.productId}`,
-      );
+      throw ApiError.badRequest(`Invalid product ID: ${item.name || item.productId}`);
     }
 
     let product = await Product.findById(productId);
@@ -54,9 +50,7 @@ const createOrder = catchAsync(async (req, res) => {
     }
 
     if (!product || !product.isActive) {
-      throw ApiError.badRequest(
-        `Product ${item.name || item.productId} is no longer available`,
-      );
+      throw ApiError.badRequest(`Product ${item.name || item.productId} is no longer available`);
     }
 
     const qty = item.quantity;
@@ -99,24 +93,24 @@ const createOrder = catchAsync(async (req, res) => {
       }
 
       if (coupon.maxUsage && coupon.usedCount >= coupon.maxUsage) {
-        throw ApiError.badRequest('This coupon has reached its usage limit');
+        throw ApiError.badRequest("This coupon has reached its usage limit");
       }
 
       if (coupon.perUserLimit > 0) {
         const userUsageCount = await Order.countDocuments({
           user: req.user._id,
-          'appliedCoupon.code': coupon.code,
-          status: { $ne: 'cancelled' },
+          "appliedCoupon.code": coupon.code,
+          status: { $ne: "cancelled" },
         });
         if (userUsageCount >= coupon.perUserLimit) {
-          throw ApiError.badRequest('You have already used this coupon the maximum number of times');
+          throw ApiError.badRequest("You have already used this coupon the maximum number of times");
         }
       }
 
       if (coupon.firstOrderOnly) {
         const userOrderCount = await Order.countDocuments({ user: req.user._id });
         if (userOrderCount > 0) {
-          throw ApiError.badRequest('This coupon is for first-time customers only');
+          throw ApiError.badRequest("This coupon is for first-time customers only");
         }
       }
 
@@ -173,7 +167,9 @@ const createOrder = catchAsync(async (req, res) => {
   req.user.orders.push(order._id);
   await req.user.save();
 
-  sendOrderConfirmationEmail(req.user.email, req.user.name, order).catch((err) => logger.error({ err, orderId: order._id }, "sendOrderConfirmationEmail failed"));
+  sendOrderConfirmationEmail(req.user.email, req.user.name, order).catch((err) =>
+    logger.error({ err, orderId: order._id }, "sendOrderConfirmationEmail failed"),
+  );
 
   res.status(201).json({
     success: true,
@@ -183,14 +179,7 @@ const createOrder = catchAsync(async (req, res) => {
 });
 
 const getOrders = catchAsync(async (req, res) => {
-  const {
-    status,
-    paymentStatus,
-    fromDate,
-    toDate,
-    page = 1,
-    limit = 20,
-  } = req.query;
+  const { status, paymentStatus, fromDate, toDate, page = 1, limit = 20 } = req.query;
 
   const query = {};
 
@@ -232,9 +221,7 @@ const getOrders = catchAsync(async (req, res) => {
 const getOrderById = catchAsync(async (req, res) => {
   const { id } = req.params;
 
-  const order = await Order.findById(id)
-    .populate("user", "name email phone")
-    .populate("items.product");
+  const order = await Order.findById(id).populate("user", "name email phone").populate("items.product");
 
   if (!order) {
     throw ApiError.notFound("Order not found");
@@ -299,7 +286,7 @@ const updateOrder = catchAsync(async (req, res) => {
   const order = await Order.findById(id);
   if (!order) throw ApiError.notFound("Order not found");
 
-  if (order.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+  if (order.user.toString() !== req.user._id.toString() && req.user.role !== "admin") {
     throw ApiError.forbidden("Not authorized");
   }
 
@@ -328,7 +315,7 @@ const cancelOrder = catchAsync(async (req, res) => {
     throw ApiError.notFound("Order not found");
   }
 
-  if (order.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+  if (order.user.toString() !== req.user._id.toString() && req.user.role !== "admin") {
     throw ApiError.forbidden("Not authorized to cancel this order");
   }
 
@@ -377,10 +364,7 @@ const confirmOrder = catchAsync(async (req, res) => {
   await order.save();
 
   if (order.appliedCoupon?.code) {
-    await Coupon.findOneAndUpdate(
-      { code: order.appliedCoupon.code.toUpperCase() },
-      { $inc: { usedCount: 1 } },
-    );
+    await Coupon.findOneAndUpdate({ code: order.appliedCoupon.code.toUpperCase() }, { $inc: { usedCount: 1 } });
   }
 
   res.json({

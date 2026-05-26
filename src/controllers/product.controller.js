@@ -1,7 +1,7 @@
-const Product = require('../models/Product');
-const Review = require('../models/Review');
-const ApiError = require('../utils/ApiError');
-const catchAsync = require('../utils/catchAsync');
+const Product = require("../models/Product");
+const Review = require("../models/Review");
+const ApiError = require("../utils/ApiError");
+const catchAsync = require("../utils/catchAsync");
 
 const getProducts = catchAsync(async (req, res) => {
   const {
@@ -22,8 +22,8 @@ const getProducts = catchAsync(async (req, res) => {
 
   const query = { isActive: true };
 
-  if (category) query.category = { $regex: new RegExp(`^${category}$`, 'i') };
-  if (brand) query.brand = { $regex: new RegExp(`^${brand}$`, 'i') };
+  if (category) query.category = { $regex: new RegExp(`^${category}$`, "i") };
+  if (brand) query.brand = { $regex: new RegExp(`^${brand}$`, "i") };
   if (productType) query.productType = productType;
   if (minPrice || maxPrice) {
     query.price = {};
@@ -31,17 +31,17 @@ const getProducts = catchAsync(async (req, res) => {
     if (maxPrice) query.price.$lte = Number(maxPrice);
   }
   if (minRating) query.rating = { $gte: Number(minRating) };
-  if (inStock === 'true') query.stock = { $gt: 0 };
-  if (onSale === 'true') query.onSale = true;
-  if (featured === 'true') query.featured = true;
+  if (inStock === "true") query.stock = { $gt: 0 };
+  if (onSale === "true") query.onSale = true;
+  if (featured === "true") query.featured = true;
   if (search) query.$text = { $search: search };
 
   let sort = { createdAt: -1 };
-  if (sortBy === 'price_asc') sort = { price: 1 };
-  if (sortBy === 'price_desc') sort = { price: -1 };
-  if (sortBy === 'rating') sort = { rating: -1 };
-  if (sortBy === 'popular') sort = { totalSold: -1 };
-  if (sortBy === 'newest') sort = { createdAt: -1 };
+  if (sortBy === "price_asc") sort = { price: 1 };
+  if (sortBy === "price_desc") sort = { price: -1 };
+  if (sortBy === "rating") sort = { rating: -1 };
+  if (sortBy === "popular") sort = { totalSold: -1 };
+  if (sortBy === "newest") sort = { createdAt: -1 };
 
   const products = await Product.find(query)
     .sort(sort)
@@ -52,7 +52,7 @@ const getProducts = catchAsync(async (req, res) => {
 
   res.json({
     success: true,
-    message: 'Products retrieved successfully',
+    message: "Products retrieved successfully",
     data: { products },
     meta: { page: parseInt(page), limit: parseInt(limit), total, totalPages: Math.ceil(total / limit) },
   });
@@ -64,7 +64,7 @@ const getProductBySlug = catchAsync(async (req, res) => {
   const product = await Product.findOne({ slug, isActive: true });
 
   if (!product) {
-    throw ApiError.notFound('Product not found');
+    throw ApiError.notFound("Product not found");
   }
 
   res.json({
@@ -79,7 +79,7 @@ const getProductById = catchAsync(async (req, res) => {
   const product = await Product.findOne({ _id: id, isActive: true });
 
   if (!product) {
-    throw ApiError.notFound('Product not found');
+    throw ApiError.notFound("Product not found");
   }
 
   res.json({
@@ -91,9 +91,7 @@ const getProductById = catchAsync(async (req, res) => {
 const getFeaturedProducts = catchAsync(async (req, res) => {
   const { limit = 10 } = req.query;
 
-  const products = await Product.find({ featured: true, isActive: true })
-    .sort({ rating: -1 })
-    .limit(parseInt(limit));
+  const products = await Product.find({ featured: true, isActive: true }).sort({ rating: -1 }).limit(parseInt(limit));
 
   res.json({
     success: true,
@@ -130,9 +128,7 @@ const getNewArrivals = catchAsync(async (req, res) => {
 const getOnSale = catchAsync(async (req, res) => {
   const { limit = 10 } = req.query;
 
-  const products = await Product.find({ onSale: true, isActive: true })
-    .sort({ createdAt: -1 })
-    .limit(parseInt(limit));
+  const products = await Product.find({ onSale: true, isActive: true }).sort({ createdAt: -1 }).limit(parseInt(limit));
 
   res.json({
     success: true,
@@ -143,7 +139,7 @@ const getOnSale = catchAsync(async (req, res) => {
 const getCategories = catchAsync(async (req, res) => {
   const categories = await Product.aggregate([
     { $match: { isActive: true } },
-    { $group: { _id: '$category', count: { $sum: 1 } } },
+    { $group: { _id: "$category", count: { $sum: 1 } } },
     { $sort: { count: -1 } },
   ]);
 
@@ -161,7 +157,7 @@ const createProduct = catchAsync(async (req, res) => {
 
   res.status(201).json({
     success: true,
-    message: 'Product created successfully',
+    message: "Product created successfully",
     data: { product },
   });
 });
@@ -171,11 +167,11 @@ const updateProduct = catchAsync(async (req, res) => {
 
   const product = await Product.findById(id);
   if (!product) {
-    throw ApiError.notFound('Product not found');
+    throw ApiError.notFound("Product not found");
   }
 
-  if (req.user.role !== 'admin') {
-    throw ApiError.forbidden('You do not have permission to update this product');
+  if (req.user.role !== "admin") {
+    throw ApiError.forbidden("You do not have permission to update this product");
   }
 
   Object.assign(product, req.body);
@@ -184,7 +180,7 @@ const updateProduct = catchAsync(async (req, res) => {
 
   res.json({
     success: true,
-    message: 'Product updated successfully',
+    message: "Product updated successfully",
     data: { product },
   });
 });
@@ -194,11 +190,11 @@ const deleteProduct = catchAsync(async (req, res) => {
 
   const product = await Product.findById(id);
   if (!product) {
-    throw ApiError.notFound('Product not found');
+    throw ApiError.notFound("Product not found");
   }
 
-  if (req.user.role !== 'admin') {
-    throw ApiError.forbidden('You do not have permission to delete this product');
+  if (req.user.role !== "admin") {
+    throw ApiError.forbidden("You do not have permission to delete this product");
   }
 
   product.isActive = false;
@@ -206,7 +202,7 @@ const deleteProduct = catchAsync(async (req, res) => {
 
   res.json({
     success: true,
-    message: 'Product deleted successfully',
+    message: "Product deleted successfully",
   });
 });
 
@@ -214,19 +210,15 @@ const updateStock = catchAsync(async (req, res) => {
   const { id } = req.params;
   const { stock } = req.body;
 
-  const product = await Product.findByIdAndUpdate(
-    id,
-    { stock, updatedBy: req.user._id },
-    { new: true }
-  );
+  const product = await Product.findByIdAndUpdate(id, { stock, updatedBy: req.user._id }, { new: true });
 
   if (!product) {
-    throw ApiError.notFound('Product not found');
+    throw ApiError.notFound("Product not found");
   }
 
   res.json({
     success: true,
-    message: 'Stock updated successfully',
+    message: "Stock updated successfully",
     data: { product },
   });
 });
@@ -235,15 +227,15 @@ const getProductReviews = catchAsync(async (req, res) => {
   const { id } = req.params;
   const { page = 1, limit = 10 } = req.query;
 
-  const reviews = await Review.find({ product: id, status: 'approved' })
-    .populate('user', 'name avatar')
+  const reviews = await Review.find({ product: id, status: "approved" })
+    .populate("user", "name avatar")
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(parseInt(limit));
 
-  const total = await Review.countDocuments({ product: id, status: 'approved' });
+  const total = await Review.countDocuments({ product: id, status: "approved" });
 
-  const product = await Product.findById(id).select('rating reviewCount');
+  const product = await Product.findById(id).select("rating reviewCount");
 
   res.json({
     success: true,
@@ -258,7 +250,7 @@ const addReview = catchAsync(async (req, res) => {
 
   const product = await Product.findById(id);
   if (!product) {
-    throw ApiError.notFound('Product not found');
+    throw ApiError.notFound("Product not found");
   }
 
   const existingReview = await Review.findOne({
@@ -267,7 +259,7 @@ const addReview = catchAsync(async (req, res) => {
   });
 
   if (existingReview) {
-    throw ApiError.conflict('You have already reviewed this product');
+    throw ApiError.conflict("You have already reviewed this product");
   }
 
   const review = await Review.create({
@@ -277,10 +269,10 @@ const addReview = catchAsync(async (req, res) => {
     title,
     comment,
     photos,
-    status: 'pending',
+    status: "pending",
   });
 
-  const reviews = await Review.find({ product: id, status: 'approved' });
+  const reviews = await Review.find({ product: id, status: "approved" });
   const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
 
   await Product.findByIdAndUpdate(id, {
@@ -290,7 +282,7 @@ const addReview = catchAsync(async (req, res) => {
 
   res.status(201).json({
     success: true,
-    message: 'Review submitted successfully',
+    message: "Review submitted successfully",
     data: { review },
   });
 });

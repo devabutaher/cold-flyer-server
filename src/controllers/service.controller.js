@@ -1,11 +1,11 @@
-const Service = require('../models/Service');
-const ServiceBooking = require('../models/ServiceBooking');
-const ApiError = require('../utils/ApiError');
-const catchAsync = require('../utils/catchAsync');
-const logger = require('../utils/logger');
-const { createServiceNotification } = require('../services/notification.service');
-const { sendBookingConfirmationEmail } = require('../services/email.service');
-const Technician = require('../models/Technician');
+const Service = require("../models/Service");
+const ServiceBooking = require("../models/ServiceBooking");
+const ApiError = require("../utils/ApiError");
+const catchAsync = require("../utils/catchAsync");
+const logger = require("../utils/logger");
+const { createServiceNotification } = require("../services/notification.service");
+const { sendBookingConfirmationEmail } = require("../services/email.service");
+const Technician = require("../models/Technician");
 
 const getServices = catchAsync(async (req, res) => {
   const { search, category, serviceType, sortBy, page = 1, limit = 20 } = req.query;
@@ -13,20 +13,17 @@ const getServices = catchAsync(async (req, res) => {
   const query = {};
 
   if (search) {
-    const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    query.$or = [
-      { name: { $regex: escaped, $options: 'i' } },
-      { description: { $regex: escaped, $options: 'i' } },
-    ];
+    const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    query.$or = [{ name: { $regex: escaped, $options: "i" } }, { description: { $regex: escaped, $options: "i" } }];
   }
-  if (category) query.category = { $regex: new RegExp(`^${category}$`, 'i') };
-  if (serviceType) query.serviceType = { $regex: new RegExp(`^${serviceType}$`, 'i') };
+  if (category) query.category = { $regex: new RegExp(`^${category}$`, "i") };
+  if (serviceType) query.serviceType = { $regex: new RegExp(`^${serviceType}$`, "i") };
 
   let sort = { createdAt: -1 };
-  if (sortBy === 'price_asc') sort = { basePrice: 1 };
-  if (sortBy === 'price_desc') sort = { basePrice: -1 };
-  if (sortBy === 'rating') sort = { rating: -1 };
-  if (sortBy === 'popular') sort = { bookingCount: -1 };
+  if (sortBy === "price_asc") sort = { basePrice: 1 };
+  if (sortBy === "price_desc") sort = { basePrice: -1 };
+  if (sortBy === "rating") sort = { rating: -1 };
+  if (sortBy === "popular") sort = { bookingCount: -1 };
 
   const services = await Service.find(query)
     .sort(sort)
@@ -47,14 +44,14 @@ const getServiceBySlug = catchAsync(async (req, res) => {
 
   // Try to find by slug first
   let service = await Service.findOne({ slug });
-  
+
   // If not found and looks like an ObjectId, try by ID
   if (!service && slug.match(/^[0-9a-f]{24}$/)) {
     service = await Service.findById(slug);
   }
 
   if (!service) {
-    throw ApiError.notFound('Service not found');
+    throw ApiError.notFound("Service not found");
   }
 
   res.json({
@@ -65,13 +62,13 @@ const getServiceBySlug = catchAsync(async (req, res) => {
 
 const getServiceById = catchAsync(async (req, res) => {
   const { id } = req.params;
-  logger.debug({ serviceId: id }, 'getServiceById');
+  logger.debug({ serviceId: id }, "getServiceById");
 
   const service = await Service.findById(id);
-  logger.debug({ serviceId: id, found: !!service }, 'getServiceById result');
+  logger.debug({ serviceId: id, found: !!service }, "getServiceById result");
 
   if (!service) {
-    throw ApiError.notFound('Service not found');
+    throw ApiError.notFound("Service not found");
   }
 
   res.json({
@@ -81,9 +78,7 @@ const getServiceById = catchAsync(async (req, res) => {
 });
 
 const getFeaturedServices = catchAsync(async (req, res) => {
-  const services = await Service.find({ isFeatured: true })
-    .sort({ createdAt: -1 })
-    .limit(10);
+  const services = await Service.find({ isFeatured: true }).sort({ createdAt: -1 }).limit(10);
 
   res.json({
     success: true,
@@ -96,7 +91,7 @@ const createService = catchAsync(async (req, res) => {
 
   res.status(201).json({
     success: true,
-    message: 'Service created successfully',
+    message: "Service created successfully",
     data: { service },
   });
 });
@@ -107,12 +102,12 @@ const updateService = catchAsync(async (req, res) => {
   const service = await Service.findByIdAndUpdate(id, req.body, { new: true, runValidators: true });
 
   if (!service) {
-    throw ApiError.notFound('Service not found');
+    throw ApiError.notFound("Service not found");
   }
 
   res.json({
     success: true,
-    message: 'Service updated successfully',
+    message: "Service updated successfully",
     data: { service },
   });
 });
@@ -122,7 +117,7 @@ const createBooking = catchAsync(async (req, res) => {
 
   const serviceData = await Service.findById(service);
   if (!serviceData) {
-    throw ApiError.notFound('Service not found');
+    throw ApiError.notFound("Service not found");
   }
 
   const price = serviceData.basePrice || 0;
@@ -137,7 +132,7 @@ const createBooking = catchAsync(async (req, res) => {
     propertyDetails,
     serviceAddress,
     notes,
-    source: 'website',
+    source: "website",
   });
 
   await Service.findByIdAndUpdate(service, { $inc: { bookingCount: 1 } });
@@ -145,11 +140,13 @@ const createBooking = catchAsync(async (req, res) => {
   req.user.serviceBookings.push(booking._id);
   await req.user.save();
 
-  sendBookingConfirmationEmail(req.user.email, req.user.name || req.user.email, booking, 'confirmed').catch((err) => logger.error({ err, bookingId: booking._id }, "sendBookingConfirmationEmail failed"));
+  sendBookingConfirmationEmail(req.user.email, req.user.name || req.user.email, booking, "confirmed").catch((err) =>
+    logger.error({ err, bookingId: booking._id }, "sendBookingConfirmationEmail failed"),
+  );
 
   res.status(201).json({
     success: true,
-    message: 'Booking created successfully',
+    message: "Booking created successfully",
     data: { booking },
   });
 });
@@ -159,18 +156,18 @@ const getBookings = catchAsync(async (req, res) => {
 
   const query = {};
 
-  if (req.user.role === 'user') {
+  if (req.user.role === "user") {
     query.user = req.user._id;
-  } else if (['admin'].includes(req.user.role)) {
+  } else if (["admin"].includes(req.user.role)) {
     if (req.query.userId) query.user = req.query.userId;
   }
 
   if (status) query.status = status;
 
   const bookings = await ServiceBooking.find(query)
-    .populate('user', 'name email phone')
-    .populate('service', 'name category')
-    .populate({ path: 'technician', select: 'employeeId specializations', populate: { path: 'user', select: 'name' } })
+    .populate("user", "name email phone")
+    .populate("service", "name category")
+    .populate({ path: "technician", select: "employeeId specializations", populate: { path: "user", select: "name" } })
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(parseInt(limit));
@@ -188,15 +185,15 @@ const getBookingById = catchAsync(async (req, res) => {
   const { id } = req.params;
 
   const booking = await ServiceBooking.findById(id)
-    .populate('user', 'name email phone')
-    .populate('service')
-    .populate('technician', 'user specializations');
+    .populate("user", "name email phone")
+    .populate("service")
+    .populate("technician", "user specializations");
 
   if (!booking) {
-    throw ApiError.notFound('Booking not found');
+    throw ApiError.notFound("Booking not found");
   }
 
-  if (booking.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+  if (booking.user.toString() !== req.user._id.toString() && req.user.role !== "admin") {
     throw ApiError.forbidden("Not authorized to view this booking");
   }
 
@@ -212,12 +209,12 @@ const updateBooking = catchAsync(async (req, res) => {
   const booking = await ServiceBooking.findByIdAndUpdate(id, req.body, { new: true, runValidators: true });
 
   if (!booking) {
-    throw ApiError.notFound('Booking not found');
+    throw ApiError.notFound("Booking not found");
   }
 
   res.json({
     success: true,
-    message: 'Booking updated successfully',
+    message: "Booking updated successfully",
     data: { booking },
   });
 });
@@ -228,25 +225,32 @@ const scheduleBooking = catchAsync(async (req, res) => {
 
   const booking = await ServiceBooking.findById(id);
   if (!booking) {
-    throw ApiError.notFound('Booking not found');
+    throw ApiError.notFound("Booking not found");
   }
 
   booking.scheduledDate = scheduledDate;
   booking.scheduledTime = scheduledTime;
   if (technician) booking.technician = technician;
-  booking.status = 'scheduled';
+  booking.status = "scheduled";
   await booking.save();
 
-  await createServiceNotification(booking.user, booking, 'scheduled');
+  await createServiceNotification(booking.user, booking, "scheduled");
 
-  const populatedBooking = await ServiceBooking.findById(booking._id).populate('user', 'name email').populate('service', 'name');
+  const populatedBooking = await ServiceBooking.findById(booking._id)
+    .populate("user", "name email")
+    .populate("service", "name");
   if (populatedBooking?.user?.email) {
-    sendBookingConfirmationEmail(populatedBooking.user.email, populatedBooking.user.name || populatedBooking.user.email, populatedBooking, 'scheduled').catch((err) => logger.error({ err, bookingId: booking._id }, "sendBookingConfirmationEmail failed"));
+    sendBookingConfirmationEmail(
+      populatedBooking.user.email,
+      populatedBooking.user.name || populatedBooking.user.email,
+      populatedBooking,
+      "scheduled",
+    ).catch((err) => logger.error({ err, bookingId: booking._id }, "sendBookingConfirmationEmail failed"));
   }
 
   res.json({
     success: true,
-    message: 'Booking scheduled successfully',
+    message: "Booking scheduled successfully",
     data: { booking },
   });
 });
@@ -257,7 +261,7 @@ const completeBooking = catchAsync(async (req, res) => {
 
   const booking = await ServiceBooking.findById(id);
   if (!booking) {
-    throw ApiError.notFound('Booking not found');
+    throw ApiError.notFound("Booking not found");
   }
 
   booking.diagnosis = diagnosis;
@@ -266,7 +270,7 @@ const completeBooking = catchAsync(async (req, res) => {
   booking.additionalCharges = additionalCharges || [];
   booking.afterPhotos = afterPhotos || [];
   booking.warrantyInfo = warrantyInfo;
-  booking.status = 'completed';
+  booking.status = "completed";
   booking.completedAt = new Date();
 
   if (additionalCharges && additionalCharges.length > 0) {
@@ -282,14 +286,21 @@ const completeBooking = catchAsync(async (req, res) => {
     });
   }
 
-  const completedBooking = await ServiceBooking.findById(booking._id).populate('user', 'name email').populate('service', 'name');
+  const completedBooking = await ServiceBooking.findById(booking._id)
+    .populate("user", "name email")
+    .populate("service", "name");
   if (completedBooking?.user?.email) {
-    sendBookingConfirmationEmail(completedBooking.user.email, completedBooking.user.name || completedBooking.user.email, completedBooking, 'completed').catch((err) => logger.error({ err, bookingId: booking._id }, "sendBookingConfirmationEmail failed"));
+    sendBookingConfirmationEmail(
+      completedBooking.user.email,
+      completedBooking.user.name || completedBooking.user.email,
+      completedBooking,
+      "completed",
+    ).catch((err) => logger.error({ err, bookingId: booking._id }, "sendBookingConfirmationEmail failed"));
   }
 
   res.json({
     success: true,
-    message: 'Booking completed successfully',
+    message: "Booking completed successfully",
     data: { booking },
   });
 });
@@ -300,31 +311,38 @@ const cancelBooking = catchAsync(async (req, res) => {
 
   const booking = await ServiceBooking.findById(id);
   if (!booking) {
-    throw ApiError.notFound('Booking not found');
+    throw ApiError.notFound("Booking not found");
   }
 
-  if (booking.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+  if (booking.user.toString() !== req.user._id.toString() && req.user.role !== "admin") {
     throw ApiError.forbidden("Not authorized to cancel this booking");
   }
 
-  if (['completed', 'cancelled'].includes(booking.status)) {
-    throw ApiError.badRequest('Cannot cancel this booking');
+  if (["completed", "cancelled"].includes(booking.status)) {
+    throw ApiError.badRequest("Cannot cancel this booking");
   }
 
-  booking.status = 'cancelled';
+  booking.status = "cancelled";
   booking.internalNotes = reason;
   await booking.save();
 
-  await createServiceNotification(booking.user, booking, 'cancelled');
+  await createServiceNotification(booking.user, booking, "cancelled");
 
-  const cancelledBooking = await ServiceBooking.findById(booking._id).populate('user', 'name email').populate('service', 'name');
+  const cancelledBooking = await ServiceBooking.findById(booking._id)
+    .populate("user", "name email")
+    .populate("service", "name");
   if (cancelledBooking?.user?.email) {
-    sendBookingConfirmationEmail(cancelledBooking.user.email, cancelledBooking.user.name || cancelledBooking.user.email, cancelledBooking, 'cancelled').catch((err) => logger.error({ err, bookingId: booking._id }, "sendBookingConfirmationEmail failed"));
+    sendBookingConfirmationEmail(
+      cancelledBooking.user.email,
+      cancelledBooking.user.name || cancelledBooking.user.email,
+      cancelledBooking,
+      "cancelled",
+    ).catch((err) => logger.error({ err, bookingId: booking._id }, "sendBookingConfirmationEmail failed"));
   }
 
   res.json({
     success: true,
-    message: 'Booking cancelled successfully',
+    message: "Booking cancelled successfully",
   });
 });
 
@@ -333,26 +351,33 @@ const confirmBooking = catchAsync(async (req, res) => {
 
   const booking = await ServiceBooking.findById(id);
   if (!booking) {
-    throw ApiError.notFound('Booking not found');
+    throw ApiError.notFound("Booking not found");
   }
 
-  if (booking.status !== 'pending') {
-    throw ApiError.badRequest('Only pending bookings can be confirmed');
+  if (booking.status !== "pending") {
+    throw ApiError.badRequest("Only pending bookings can be confirmed");
   }
 
-  booking.status = 'confirmed';
+  booking.status = "confirmed";
   await booking.save();
 
-  await createServiceNotification(booking.user, booking, 'confirmed');
+  await createServiceNotification(booking.user, booking, "confirmed");
 
-  const populatedBooking = await ServiceBooking.findById(booking._id).populate('user', 'name email').populate('service', 'name');
+  const populatedBooking = await ServiceBooking.findById(booking._id)
+    .populate("user", "name email")
+    .populate("service", "name");
   if (populatedBooking?.user?.email) {
-    sendBookingConfirmationEmail(populatedBooking.user.email, populatedBooking.user.name || populatedBooking.user.email, populatedBooking, 'confirmed').catch((err) => logger.error({ err, bookingId: booking._id }, "sendBookingConfirmationEmail failed"));
+    sendBookingConfirmationEmail(
+      populatedBooking.user.email,
+      populatedBooking.user.name || populatedBooking.user.email,
+      populatedBooking,
+      "confirmed",
+    ).catch((err) => logger.error({ err, bookingId: booking._id }, "sendBookingConfirmationEmail failed"));
   }
 
   res.json({
     success: true,
-    message: 'Booking confirmed successfully',
+    message: "Booking confirmed successfully",
     data: { booking },
   });
 });
@@ -362,19 +387,19 @@ const startService = catchAsync(async (req, res) => {
 
   const booking = await ServiceBooking.findById(id);
   if (!booking) {
-    throw ApiError.notFound('Booking not found');
+    throw ApiError.notFound("Booking not found");
   }
 
-  if (booking.status !== 'scheduled') {
-    throw ApiError.badRequest('Only scheduled bookings can be started');
+  if (booking.status !== "scheduled") {
+    throw ApiError.badRequest("Only scheduled bookings can be started");
   }
 
-  booking.status = 'in_progress';
+  booking.status = "in_progress";
   await booking.save();
 
   res.json({
     success: true,
-    message: 'Service started successfully',
+    message: "Service started successfully",
     data: { booking },
   });
 });
@@ -385,12 +410,12 @@ const deleteService = catchAsync(async (req, res) => {
   const service = await Service.findByIdAndDelete(id);
 
   if (!service) {
-    throw ApiError.notFound('Service not found');
+    throw ApiError.notFound("Service not found");
   }
 
   res.json({
     success: true,
-    message: 'Service deleted successfully',
+    message: "Service deleted successfully",
   });
 });
 

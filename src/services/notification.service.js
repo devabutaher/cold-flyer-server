@@ -1,5 +1,5 @@
-const logger = require('../utils/logger');
-const Notification = require('../models/Notification');
+const logger = require("../utils/logger");
+const Notification = require("../models/Notification");
 
 const createNotification = async (userId, type, title, message, data = {}) => {
   try {
@@ -12,7 +12,7 @@ const createNotification = async (userId, type, title, message, data = {}) => {
     });
     return notification;
   } catch (error) {
-    logger.error({ err: error }, 'Error creating notification');
+    logger.error({ err: error }, "Error creating notification");
     return null;
   }
 };
@@ -26,10 +26,16 @@ const createOrderNotification = async (userId, order, status) => {
     cancelled: `Your order ${order.orderNumber} has been cancelled`,
   };
 
-  return createNotification(userId, 'order_update', 'Order Update', messages[status] || `Order ${order.orderNumber} updated`, {
-    orderId: order._id,
-    url: `/orders/${order._id}`,
-  });
+  return createNotification(
+    userId,
+    "order_update",
+    "Order Update",
+    messages[status] || `Order ${order.orderNumber} updated`,
+    {
+      orderId: order._id,
+      url: `/orders/${order._id}`,
+    },
+  );
 };
 
 const createPaymentNotification = async (userId, order, status) => {
@@ -39,7 +45,7 @@ const createPaymentNotification = async (userId, order, status) => {
     refunded: `Payment refunded for order ${order.orderNumber}`,
   };
 
-  return createNotification(userId, 'payment', 'Payment Update', messages[status] || 'Payment updated', {
+  return createNotification(userId, "payment", "Payment Update", messages[status] || "Payment updated", {
     orderId: order._id,
     url: `/orders/${order._id}`,
   });
@@ -53,7 +59,7 @@ const createServiceNotification = async (userId, booking, status) => {
     cancelled: `Your service booking ${booking.bookingNumber} has been cancelled`,
   };
 
-  return createNotification(userId, 'service', 'Service Update', messages[status] || 'Service updated', {
+  return createNotification(userId, "service", "Service Update", messages[status] || "Service updated", {
     serviceId: booking._id,
     url: `/bookings/${booking._id}`,
   });
@@ -79,15 +85,12 @@ const markAsRead = async (notificationId, userId) => {
   return Notification.findOneAndUpdate(
     { _id: notificationId, user: userId },
     { isRead: true, readAt: new Date() },
-    { new: true }
+    { new: true },
   );
 };
 
 const markAllAsRead = async (userId) => {
-  return Notification.updateMany(
-    { user: userId, isRead: false },
-    { isRead: true, readAt: new Date() }
-  );
+  return Notification.updateMany({ user: userId, isRead: false }, { isRead: true, readAt: new Date() });
 };
 
 module.exports = {

@@ -1,18 +1,18 @@
-const logger = require('../utils/logger');
+const logger = require("../utils/logger");
 const Order = require("../models/Order");
 const Coupon = require("../models/Coupon");
 const ApiError = require("../utils/ApiError");
 const catchAsync = require("../utils/catchAsync");
 const { sendOrderConfirmationEmail } = require("../services/email.service");
 
-const SSLCommerzPayment = require('sslcommerz-lts');
+const SSLCommerzPayment = require("sslcommerz-lts");
 
 const store_id = process.env.SSLCOMMERZ_STORE_ID;
 const store_passwd = process.env.SSLCOMMERZ_STORE_PASSWD;
-const is_live = process.env.SSLCOMMERZ_IS_LIVE === 'true';
+const is_live = process.env.SSLCOMMERZ_IS_LIVE === "true";
 
 const BACKEND_URL = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`;
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 
 const initPayment = catchAsync(async (req, res) => {
   const { orderId } = req.body;
@@ -38,39 +38,48 @@ const initPayment = catchAsync(async (req, res) => {
 
   const data = {
     total_amount: order.total,
-    currency: 'BDT',
+    currency: "BDT",
     tran_id: tranId,
     success_url: `${BACKEND_URL}/api/payments/sslcommerz/return`,
     fail_url: `${BACKEND_URL}/api/payments/sslcommerz/return`,
     cancel_url: `${FRONTEND_URL}/order/${order._id}?success=false&provider=sslcommerz`,
     ipn_url: `${BACKEND_URL}/api/payments/sslcommerz/ipn`,
-    shipping_method: order.isPickup ? 'NO' : 'Courier',
-    product_name: order.items.map(i => i.name).join(', ').slice(0, 255),
-    product_category: 'General',
-    product_profile: 'general',
-    cus_name: req.user.name || req.user.email.split('@')[0],
+    shipping_method: order.isPickup ? "NO" : "Courier",
+    product_name: order.items
+      .map((i) => i.name)
+      .join(", ")
+      .slice(0, 255),
+    product_category: "General",
+    product_profile: "general",
+    cus_name: req.user.name || req.user.email.split("@")[0],
     cus_email: req.user.email,
-    cus_add1: [order.shippingAddress?.address, order.shippingAddress?.thana, order.shippingAddress?.district].filter(Boolean).join(', ') || 'N/A',
-    cus_add2: 'N/A',
-    cus_city: order.shippingAddress?.district || 'Dhaka',
-    cus_state: order.shippingAddress?.district || 'Dhaka',
-    cus_postcode: '1000',
-    cus_country: 'Bangladesh',
-    cus_phone: req.user.phone || order.shippingAddress?.phone || '01700000000',
-    cus_fax: req.user.phone || '01700000000',
+    cus_add1:
+      [order.shippingAddress?.address, order.shippingAddress?.thana, order.shippingAddress?.district]
+        .filter(Boolean)
+        .join(", ") || "N/A",
+    cus_add2: "N/A",
+    cus_city: order.shippingAddress?.district || "Dhaka",
+    cus_state: order.shippingAddress?.district || "Dhaka",
+    cus_postcode: "1000",
+    cus_country: "Bangladesh",
+    cus_phone: req.user.phone || order.shippingAddress?.phone || "01700000000",
+    cus_fax: req.user.phone || "01700000000",
     ship_name: order.shippingAddress?.fullName || req.user.name,
-    ship_add1: [order.shippingAddress?.address, order.shippingAddress?.thana, order.shippingAddress?.district].filter(Boolean).join(', ') || 'N/A',
-    ship_add2: 'N/A',
-    ship_city: order.shippingAddress?.district || 'Dhaka',
-    ship_state: order.shippingAddress?.district || 'Dhaka',
-    ship_postcode: '1000',
-    ship_country: 'Bangladesh',
+    ship_add1:
+      [order.shippingAddress?.address, order.shippingAddress?.thana, order.shippingAddress?.district]
+        .filter(Boolean)
+        .join(", ") || "N/A",
+    ship_add2: "N/A",
+    ship_city: order.shippingAddress?.district || "Dhaka",
+    ship_state: order.shippingAddress?.district || "Dhaka",
+    ship_postcode: "1000",
+    ship_country: "Bangladesh",
   };
 
   const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live);
   const apiResponse = await sslcz.init(data);
 
-  if (apiResponse.status !== 'SUCCESS') {
+  if (apiResponse.status !== "SUCCESS") {
     logger.error({ apiResponse }, "SSLCOMMERZ init failed");
     throw ApiError.badRequest("Failed to initialize payment with SSLCOMMERZ");
   }
@@ -99,11 +108,11 @@ const handleIpn = catchAsync(async (req, res) => {
     return res.status(200).json({ error: "Order not found" });
   }
 
-  if (order.paymentStatus === 'paid') {
+  if (order.paymentStatus === "paid") {
     return res.status(200).json({ message: "Already paid" });
   }
 
-  if (status === 'VALID' || status === 'VALIDATED') {
+  if (status === "VALID" || status === "VALIDATED") {
     const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live);
     let validation;
     try {
@@ -113,38 +122,37 @@ const handleIpn = catchAsync(async (req, res) => {
       return res.status(200).json({ error: "Validation failed" });
     }
 
-    if (validation.status !== 'VALID' && validation.status !== 'VALIDATED') {
+    if (validation.status !== "VALID" && validation.status !== "VALIDATED") {
       logger.error({ validation, tran_id }, "SSLCOMMERZ validation status not valid");
       return res.status(200).json({ error: "Transaction not valid" });
     }
 
-    order.paymentStatus = 'paid';
-    if (order.status === 'pending') order.status = 'confirmed';
+    order.paymentStatus = "paid";
+    if (order.status === "pending") order.status = "confirmed";
     order.paymentId = bank_tran_id;
     order.paidAt = new Date();
     order.statusHistory.push({
-      status: 'paid',
+      status: "paid",
       timestamp: new Date(),
-      note: `Payment completed via SSLCOMMERZ (${card_type || 'N/A'})`,
+      note: `Payment completed via SSLCOMMERZ (${card_type || "N/A"})`,
     });
 
     await order.save();
 
     if (order.appliedCoupon?.code) {
-      await Coupon.findOneAndUpdate(
-        { code: order.appliedCoupon.code.toUpperCase() },
-        { $inc: { usedCount: 1 } },
-      );
+      await Coupon.findOneAndUpdate({ code: order.appliedCoupon.code.toUpperCase() }, { $inc: { usedCount: 1 } });
     }
 
     await order.populate("user");
-    sendOrderConfirmationEmail(order.user?.email, order.user?.name, order).catch((err) => logger.error({ err, orderNumber: order.orderNumber }, "sendOrderConfirmationEmail failed"));
+    sendOrderConfirmationEmail(order.user?.email, order.user?.name, order).catch((err) =>
+      logger.error({ err, orderNumber: order.orderNumber }, "sendOrderConfirmationEmail failed"),
+    );
 
     logger.info({ orderNumber: order.orderNumber }, "Order marked as paid via SSLCOMMERZ");
-  } else if (status === 'FAILED') {
-    order.paymentStatus = 'failed';
+  } else if (status === "FAILED") {
+    order.paymentStatus = "failed";
     order.statusHistory.push({
-      status: 'failed',
+      status: "failed",
       timestamp: new Date(),
       note: `SSLCOMMERZ payment failed`,
     });
@@ -163,31 +171,32 @@ const handleReturn = catchAsync(async (req, res) => {
 
   const order = await Order.findOne({ sslcommerzTranId: tran_id });
 
-  if (order && (status === 'VALID' || status === 'VALIDATED')) {
-    if (order.paymentStatus !== 'paid') {
-      order.paymentStatus = 'paid';
-      if (order.status === 'pending') order.status = 'confirmed';
+  if (order && (status === "VALID" || status === "VALIDATED")) {
+    if (order.paymentStatus !== "paid") {
+      order.paymentStatus = "paid";
+      if (order.status === "pending") order.status = "confirmed";
       order.paidAt = new Date();
       order.statusHistory.push({
-        status: 'paid',
+        status: "paid",
         timestamp: new Date(),
-        note: 'Payment completed via SSLCOMMERZ',
+        note: "Payment completed via SSLCOMMERZ",
       });
       await order.save();
 
       if (order.appliedCoupon?.code) {
-        await Coupon.findOneAndUpdate(
-          { code: order.appliedCoupon.code.toUpperCase() },
-          { $inc: { usedCount: 1 } },
-        );
+        await Coupon.findOneAndUpdate({ code: order.appliedCoupon.code.toUpperCase() }, { $inc: { usedCount: 1 } });
       }
 
       await order.populate("user");
-      sendOrderConfirmationEmail(order.user?.email, order.user?.name, order).catch((err) => logger.error({ err, orderNumber: order.orderNumber }, "sendOrderConfirmationEmail failed"));
+      sendOrderConfirmationEmail(order.user?.email, order.user?.name, order).catch((err) =>
+        logger.error({ err, orderNumber: order.orderNumber }, "sendOrderConfirmationEmail failed"),
+      );
     }
     res.redirect(`${FRONTEND_URL}/order/${order._id}?success=true&provider=sslcommerz`);
   } else if (order) {
-    res.redirect(`${FRONTEND_URL}/order/${order._id}?success=${status === 'VALID' || status === 'VALIDATED'}&provider=sslcommerz`);
+    res.redirect(
+      `${FRONTEND_URL}/order/${order._id}?success=${status === "VALID" || status === "VALIDATED"}&provider=sslcommerz`,
+    );
   } else {
     res.redirect(`${FRONTEND_URL}/order/unknown?success=false&provider=sslcommerz`);
   }
@@ -234,7 +243,7 @@ const verifySslcommerzPayment = catchAsync(async (req, res) => {
     throw ApiError.forbidden("Not authorized");
   }
 
-  if (order.paymentStatus === 'paid') {
+  if (order.paymentStatus === "paid") {
     return res.json({
       success: true,
       message: "Order already paid",
@@ -260,35 +269,34 @@ const verifySslcommerzPayment = catchAsync(async (req, res) => {
   logger.info({ queryResponse, tran_id: order.sslcommerzTranId }, "SSLCOMMERZ verify query response");
 
   const txStatus = queryResponse?.status;
-  if (txStatus !== 'VALID' && txStatus !== 'VALIDATED') {
+  if (txStatus !== "VALID" && txStatus !== "VALIDATED") {
     return res.json({
       success: false,
-      message: `SSLCOMMERZ transaction status: ${txStatus || 'UNKNOWN'}`,
-      data: { status: txStatus || 'UNKNOWN', raw: queryResponse },
+      message: `SSLCOMMERZ transaction status: ${txStatus || "UNKNOWN"}`,
+      data: { status: txStatus || "UNKNOWN", raw: queryResponse },
     });
   }
 
-  order.paymentStatus = 'paid';
-  if (order.status === 'pending') order.status = 'confirmed';
+  order.paymentStatus = "paid";
+  if (order.status === "pending") order.status = "confirmed";
   order.paymentId = order.sslcommerzTranId;
   order.paidAt = new Date();
   order.statusHistory.push({
-    status: 'paid',
+    status: "paid",
     timestamp: new Date(),
-    note: 'Payment verified via SSLCOMMERZ query',
+    note: "Payment verified via SSLCOMMERZ query",
   });
 
   await order.save();
 
   if (order.appliedCoupon?.code) {
-    await Coupon.findOneAndUpdate(
-      { code: order.appliedCoupon.code.toUpperCase() },
-      { $inc: { usedCount: 1 } },
-    );
+    await Coupon.findOneAndUpdate({ code: order.appliedCoupon.code.toUpperCase() }, { $inc: { usedCount: 1 } });
   }
 
   await order.populate("user");
-  sendOrderConfirmationEmail(order.user?.email, order.user?.name, order).catch((err) => logger.error({ err, orderNumber: order.orderNumber }, "sendOrderConfirmationEmail failed"));
+  sendOrderConfirmationEmail(order.user?.email, order.user?.name, order).catch((err) =>
+    logger.error({ err, orderNumber: order.orderNumber }, "sendOrderConfirmationEmail failed"),
+  );
 
   res.json({
     success: true,

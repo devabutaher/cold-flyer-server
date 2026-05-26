@@ -1,5 +1,5 @@
-const ActivityLog = require('../models/ActivityLog');
-const catchAsync = require('../utils/catchAsync');
+const ActivityLog = require("../models/ActivityLog");
+const catchAsync = require("../utils/catchAsync");
 
 const getActivityLogs = catchAsync(async (req, res) => {
   const { page = 1, limit = 100, user, type, startDate, endDate } = req.query;
@@ -21,7 +21,7 @@ const getActivityLogs = catchAsync(async (req, res) => {
   const total = await ActivityLog.countDocuments(query);
 
   // Get distinct users for filter dropdown
-  const users = await ActivityLog.distinct('user', { user: { $ne: null } });
+  const users = await ActivityLog.distinct("user", { user: { $ne: null } });
 
   res.json({
     success: true,

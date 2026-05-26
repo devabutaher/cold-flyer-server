@@ -1,22 +1,22 @@
-const Attendance = require('../models/Attendance');
-const Technician = require('../models/Technician');
-const LocationLog = require('../models/LocationLog');
-const ApiError = require('../utils/ApiError');
-const catchAsync = require('../utils/catchAsync');
+const Attendance = require("../models/Attendance");
+const Technician = require("../models/Technician");
+const LocationLog = require("../models/LocationLog");
+const ApiError = require("../utils/ApiError");
+const catchAsync = require("../utils/catchAsync");
 
 function todayStr() {
-  return new Date().toISOString().split('T')[0];
+  return new Date().toISOString().split("T")[0];
 }
 
 function nowTime() {
   const n = new Date();
-  return `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
+  return `${String(n.getHours()).padStart(2, "0")}:${String(n.getMinutes()).padStart(2, "0")}`;
 }
 
 const getTodayStatus = catchAsync(async (req, res) => {
   const workers = await Technician.find({ isActive: true })
-    .populate('user', 'name email phone avatar')
-    .select('user status nid bloodGroup emergencyContact salary');
+    .populate("user", "name email phone avatar")
+    .select("user status nid bloodGroup emergencyContact salary");
 
   const today = todayStr();
   const records = await Attendance.find({ date: today });
@@ -30,15 +30,22 @@ const getTodayStatus = catchAsync(async (req, res) => {
     const record = statusMap[w._id.toString()];
     return {
       _id: w._id,
-      workerName: w.user?.name || 'Unknown',
-      phone: w.user?.phone || '',
+      workerName: w.user?.name || "Unknown",
+      phone: w.user?.phone || "",
       nid: w.nid,
       bloodGroup: w.bloodGroup,
       emergencyContact: w.emergencyContact,
       salary: w.salary,
       status: w.status,
       attendance: record
-        ? { _id: record._id, inTime: record.inTime, outTime: record.outTime, location: record.location, task: record.task, note: record.note }
+        ? {
+            _id: record._id,
+            inTime: record.inTime,
+            outTime: record.outTime,
+            location: record.location,
+            task: record.task,
+            note: record.note,
+          }
         : null,
     };
   });
@@ -73,33 +80,33 @@ const getAttendanceHistory = catchAsync(async (req, res) => {
 
 const checkin = catchAsync(async (req, res) => {
   const { workerId, location, task, lat, lng } = req.body;
-  if (!workerId) throw ApiError.badRequest('workerId is required');
+  if (!workerId) throw ApiError.badRequest("workerId is required");
 
-  const technician = await Technician.findById(workerId).populate('user', 'name');
-  if (!technician) throw ApiError.notFound('Technician not found');
+  const technician = await Technician.findById(workerId).populate("user", "name");
+  if (!technician) throw ApiError.notFound("Technician not found");
 
   const today = todayStr();
   const existing = await Attendance.findOne({ worker: workerId, date: today });
   if (existing) {
-    throw ApiError.conflict('Already checked in today');
+    throw ApiError.conflict("Already checked in today");
   }
 
   const inTime = nowTime();
-  const workerName = technician.user?.name || 'Unknown';
+  const workerName = technician.user?.name || "Unknown";
 
   const record = await Attendance.create({
     worker: workerId,
     workerName,
     date: today,
     inTime,
-    location: location || '',
-    task: task || '',
+    location: location || "",
+    task: task || "",
     lat: lat || undefined,
     lng: lng || undefined,
   });
 
   // Update technician status
-  technician.status = 'available';
+  technician.status = "available";
   await technician.save();
 
   // Log location
@@ -109,10 +116,10 @@ const checkin = catchAsync(async (req, res) => {
       workerName,
       date: today,
       time: inTime,
-      address: location || '',
+      address: location || "",
       lat: lat || undefined,
       lng: lng || undefined,
-      task: task || '',
+      task: task || "",
     });
   }
 
@@ -121,19 +128,19 @@ const checkin = catchAsync(async (req, res) => {
 
 const checkout = catchAsync(async (req, res) => {
   const { workerId, note } = req.body;
-  if (!workerId) throw ApiError.badRequest('workerId is required');
+  if (!workerId) throw ApiError.badRequest("workerId is required");
 
   const today = todayStr();
   const record = await Attendance.findOne({ worker: workerId, date: today });
-  if (!record) throw ApiError.notFound('No check-in record found for today');
-  if (record.outTime) throw ApiError.conflict('Already checked out today');
+  if (!record) throw ApiError.notFound("No check-in record found for today");
+  if (record.outTime) throw ApiError.conflict("Already checked out today");
 
   record.outTime = nowTime();
   if (note) record.note = note;
   await record.save();
 
   // Update technician status
-  await Technician.findByIdAndUpdate(workerId, { status: 'offline' });
+  await Technician.findByIdAndUpdate(workerId, { status: "offline" });
 
   res.json({ success: true, data: { attendance: record } });
 });

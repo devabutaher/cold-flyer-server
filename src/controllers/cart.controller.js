@@ -1,14 +1,16 @@
-const Coupon = require('../models/Coupon');
-const Cart = require('../models/Cart');
-const Product = require('../models/Product');
-const Order = require('../models/Order');
-const catchAsync = require('../utils/catchAsync');
-const ApiError = require('../utils/ApiError');
-const { validateCouponScope, computeCouponDiscount } = require('../utils/coupon-scope');
+const Coupon = require("../models/Coupon");
+const Cart = require("../models/Cart");
+const Product = require("../models/Product");
+const Order = require("../models/Order");
+const catchAsync = require("../utils/catchAsync");
+const ApiError = require("../utils/ApiError");
+const { validateCouponScope, computeCouponDiscount } = require("../utils/coupon-scope");
 
 const getCart = catchAsync(async (req, res) => {
-  const cart = await Cart.findOne({ user: req.user._id })
-    .populate('items.product', 'name slug images price originalPrice stockStatus');
+  const cart = await Cart.findOne({ user: req.user._id }).populate(
+    "items.product",
+    "name slug images price originalPrice stockStatus",
+  );
 
   if (!cart) {
     const newCart = await Cart.create({ user: req.user._id, items: [] });
@@ -23,7 +25,7 @@ const addItem = catchAsync(async (req, res) => {
 
   const product = await Product.findById(productId);
   if (!product || !product.isActive) {
-    throw ApiError.notFound('Product not found or unavailable');
+    throw ApiError.notFound("Product not found or unavailable");
   }
 
   let cart = await Cart.findOne({ user: req.user._id });
@@ -32,7 +34,7 @@ const addItem = catchAsync(async (req, res) => {
   }
 
   const existingItem = cart.items.find(
-    (item) => item.product.toString() === productId && JSON.stringify(item.variant) === JSON.stringify(variant)
+    (item) => item.product.toString() === productId && JSON.stringify(item.variant) === JSON.stringify(variant),
   );
 
   if (existingItem) {
@@ -52,9 +54,9 @@ const addItem = catchAsync(async (req, res) => {
 
   await cart.save();
 
-  await cart.populate('items.product', 'name slug images price originalPrice stockStatus');
+  await cart.populate("items.product", "name slug images price originalPrice stockStatus");
 
-  res.status(201).json({ success: true, message: 'Item added to cart', data: { cart } });
+  res.status(201).json({ success: true, message: "Item added to cart", data: { cart } });
 });
 
 const updateItem = catchAsync(async (req, res) => {
@@ -63,12 +65,12 @@ const updateItem = catchAsync(async (req, res) => {
 
   const cart = await Cart.findOne({ user: req.user._id });
   if (!cart) {
-    throw ApiError.notFound('Cart not found');
+    throw ApiError.notFound("Cart not found");
   }
 
   const item = cart.items.id(id);
   if (!item) {
-    throw ApiError.notFound('Item not found in cart');
+    throw ApiError.notFound("Item not found in cart");
   }
 
   if (quantity <= 0) {
@@ -78,9 +80,9 @@ const updateItem = catchAsync(async (req, res) => {
   }
 
   await cart.save();
-  await cart.populate('items.product', 'name slug images price originalPrice stockStatus');
+  await cart.populate("items.product", "name slug images price originalPrice stockStatus");
 
-  res.json({ success: true, message: 'Cart updated', data: { cart } });
+  res.json({ success: true, message: "Cart updated", data: { cart } });
 });
 
 const removeItem = catchAsync(async (req, res) => {
@@ -88,24 +90,24 @@ const removeItem = catchAsync(async (req, res) => {
 
   const cart = await Cart.findOne({ user: req.user._id });
   if (!cart) {
-    throw ApiError.notFound('Cart not found');
+    throw ApiError.notFound("Cart not found");
   }
 
   const item = cart.items.id(id);
   if (!item) {
-    throw ApiError.notFound('Item not found in cart');
+    throw ApiError.notFound("Item not found in cart");
   }
 
   item.deleteOne();
   await cart.save();
 
-  res.json({ success: true, message: 'Item removed from cart' });
+  res.json({ success: true, message: "Item removed from cart" });
 });
 
 const clearCart = catchAsync(async (req, res) => {
   await Cart.findOneAndUpdate({ user: req.user._id }, { items: [], subtotal: 0, itemCount: 0, coupon: null });
 
-  res.json({ success: true, message: 'Cart cleared' });
+  res.json({ success: true, message: "Cart cleared" });
 });
 
 const applyCoupon = catchAsync(async (req, res) => {
@@ -119,7 +121,7 @@ const applyCoupon = catchAsync(async (req, res) => {
   });
 
   if (!coupon) {
-    throw ApiError.badRequest('Invalid or expired coupon');
+    throw ApiError.badRequest("Invalid or expired coupon");
   }
 
   let cart = await Cart.findOne({ user: req.user._id });
@@ -138,7 +140,7 @@ const applyCoupon = catchAsync(async (req, res) => {
   }
 
   if (!cart) {
-    throw ApiError.notFound('Cart not found');
+    throw ApiError.notFound("Cart not found");
   }
 
   if (coupon.minOrderValue && cart.subtotal < coupon.minOrderValue) {
@@ -147,14 +149,13 @@ const applyCoupon = catchAsync(async (req, res) => {
 
   // Populate product info for scope validation
   const productIds = [...new Set(cart.items.map((i) => i.product?.toString()).filter(Boolean))];
-  const products = productIds.length > 0
-    ? await Product.find({ _id: { $in: productIds } }).select('category brand')
-    : [];
+  const products =
+    productIds.length > 0 ? await Product.find({ _id: { $in: productIds } }).select("category brand") : [];
   const productMap = {};
   for (const p of products) productMap[p._id.toString()] = p;
 
   const itemsWithProducts = cart.items.map((item) => ({
-    ...item.toObject?.() || item,
+    ...(item.toObject?.() || item),
     product: productMap[item.product?.toString()] || item.product,
   }));
 
@@ -164,24 +165,24 @@ const applyCoupon = catchAsync(async (req, res) => {
   }
 
   if (coupon.maxUsage && coupon.usedCount >= coupon.maxUsage) {
-    throw ApiError.badRequest('This coupon has reached its usage limit');
+    throw ApiError.badRequest("This coupon has reached its usage limit");
   }
 
   if (coupon.perUserLimit > 0) {
     const userUsageCount = await Order.countDocuments({
       user: req.user._id,
-      'appliedCoupon.code': coupon.code,
-      status: { $ne: 'cancelled' },
+      "appliedCoupon.code": coupon.code,
+      status: { $ne: "cancelled" },
     });
     if (userUsageCount >= coupon.perUserLimit) {
-      throw ApiError.badRequest('You have already used this coupon the maximum number of times');
+      throw ApiError.badRequest("You have already used this coupon the maximum number of times");
     }
   }
 
   if (coupon.firstOrderOnly) {
     const userOrderCount = await Order.countDocuments({ user: req.user._id });
     if (userOrderCount > 0) {
-      throw ApiError.badRequest('This coupon is for first-time customers only');
+      throw ApiError.badRequest("This coupon is for first-time customers only");
     }
   }
 
@@ -197,7 +198,7 @@ const applyCoupon = catchAsync(async (req, res) => {
 
   res.json({
     success: true,
-    message: 'Coupon applied',
+    message: "Coupon applied",
     data: {
       cart,
       calculatedDiscount,
@@ -215,7 +216,7 @@ const applyCoupon = catchAsync(async (req, res) => {
 const removeCoupon = catchAsync(async (req, res) => {
   const cart = await Cart.findOneAndUpdate({ user: req.user._id }, { coupon: null }, { new: true });
 
-  res.json({ success: true, message: 'Coupon removed', data: { cart } });
+  res.json({ success: true, message: "Coupon removed", data: { cart } });
 });
 
 module.exports = { getCart, addItem, updateItem, removeItem, clearCart, applyCoupon, removeCoupon };

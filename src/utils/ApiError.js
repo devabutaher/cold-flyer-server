@@ -9,31 +9,31 @@ class ApiError extends Error {
   }
 
   static badRequest(message, errors = []) {
-    return new ApiError(400, message, errors, 'BAD_REQUEST');
+    return new ApiError(400, message, errors, "BAD_REQUEST");
   }
 
-  static unauthorized(message = 'Unauthorized') {
-    return new ApiError(401, message, [], 'UNAUTHORIZED');
+  static unauthorized(message = "Unauthorized") {
+    return new ApiError(401, message, [], "UNAUTHORIZED");
   }
 
-  static forbidden(message = 'Forbidden') {
-    return new ApiError(403, message, [], 'FORBIDDEN');
+  static forbidden(message = "Forbidden") {
+    return new ApiError(403, message, [], "FORBIDDEN");
   }
 
-  static notFound(message = 'Not found') {
-    return new ApiError(404, message, [], 'NOT_FOUND');
+  static notFound(message = "Not found") {
+    return new ApiError(404, message, [], "NOT_FOUND");
   }
 
   static conflict(message) {
-    return new ApiError(409, message, [], 'CONFLICT');
+    return new ApiError(409, message, [], "CONFLICT");
   }
 
-  static tooManyRequests(message = 'Too many requests') {
-    return new ApiError(429, message, [], 'TOO_MANY_REQUESTS');
+  static tooManyRequests(message = "Too many requests") {
+    return new ApiError(429, message, [], "TOO_MANY_REQUESTS");
   }
 
-  static internal(message = 'Internal server error') {
-    return new ApiError(500, message, [], 'INTERNAL_ERROR');
+  static internal(message = "Internal server error") {
+    return new ApiError(500, message, [], "INTERNAL_ERROR");
   }
 }
 

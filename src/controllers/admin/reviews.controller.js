@@ -1,5 +1,5 @@
-const Review = require('../../models/Review');
-const catchAsync = require('../../utils/catchAsync');
+const Review = require("../../models/Review");
+const catchAsync = require("../../utils/catchAsync");
 
 const getAllReviews = catchAsync(async (req, res) => {
   const { status, page = 1, limit = 20 } = req.query;
@@ -8,8 +8,8 @@ const getAllReviews = catchAsync(async (req, res) => {
   if (status) query.status = status;
 
   const reviews = await Review.find(query)
-    .populate('user', 'name avatar')
-    .populate('product', 'name')
+    .populate("user", "name avatar")
+    .populate("product", "name")
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(parseInt(limit));

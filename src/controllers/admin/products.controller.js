@@ -1,11 +1,11 @@
-const Product = require('../../models/Product');
-const catchAsync = require('../../utils/catchAsync');
+const Product = require("../../models/Product");
+const catchAsync = require("../../utils/catchAsync");
 
 const getAllProducts = catchAsync(async (req, res) => {
   const { page = 1, limit = 20 } = req.query;
 
   const products = await Product.find()
-    .populate('createdBy', 'name')
+    .populate("createdBy", "name")
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(parseInt(limit));

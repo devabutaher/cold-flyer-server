@@ -1,5 +1,5 @@
-const Order = require('../../models/Order');
-const catchAsync = require('../../utils/catchAsync');
+const Order = require("../../models/Order");
+const catchAsync = require("../../utils/catchAsync");
 
 const getAllOrders = catchAsync(async (req, res) => {
   const { status, paymentStatus, page = 1, limit = 20 } = req.query;
@@ -9,7 +9,7 @@ const getAllOrders = catchAsync(async (req, res) => {
   if (paymentStatus) query.paymentStatus = paymentStatus;
 
   const orders = await Order.find(query)
-    .populate('user', 'name email')
+    .populate("user", "name email")
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(parseInt(limit));

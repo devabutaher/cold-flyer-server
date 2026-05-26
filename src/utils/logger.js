@@ -1,6 +1,6 @@
 const levels = { fatal: 0, error: 1, warn: 2, info: 3, debug: 4 };
-const threshold = levels[process.env.NODE_ENV === 'production' ? 'info' : 'debug'];
-const isDev = process.env.NODE_ENV !== 'production';
+const threshold = levels[process.env.NODE_ENV === "production" ? "info" : "debug"];
+const isDev = process.env.NODE_ENV !== "production";
 
 const c = {
   red: (s) => `\x1b[31m${s}\x1b[0m`,
@@ -19,7 +19,7 @@ for (const [level, num] of Object.entries(levels)) {
     const parts = [];
     if (isDev) parts.push(levelColors[level](level));
     if (msg) parts.push(msg);
-    if (typeof obj === 'object' && obj !== null) {
+    if (typeof obj === "object" && obj !== null) {
       if (obj instanceof Error) {
         parts.push(obj.message);
       } else {
@@ -28,7 +28,7 @@ for (const [level, num] of Object.entries(levels)) {
         }
       }
     }
-    console.log(parts.join(' | '));
+    console.log(parts.join(" | "));
   };
 }
 

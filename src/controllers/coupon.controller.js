@@ -1,7 +1,7 @@
-const Coupon = require('../models/Coupon');
-const Order = require('../models/Order');
-const catchAsync = require('../utils/catchAsync');
-const { validateCouponScope, computeCouponDiscount } = require('../utils/coupon-scope');
+const Coupon = require("../models/Coupon");
+const Order = require("../models/Order");
+const catchAsync = require("../utils/catchAsync");
+const { validateCouponScope, computeCouponDiscount } = require("../utils/coupon-scope");
 
 const getFeaturedCoupon = catchAsync(async (req, res) => {
   const coupon = await Coupon.findOne({
@@ -10,7 +10,7 @@ const getFeaturedCoupon = catchAsync(async (req, res) => {
     validUntil: { $gte: new Date() },
   })
     .sort({ discountValue: -1, createdAt: -1 })
-    .select('code description discountType discountValue minOrderValue validUntil');
+    .select("code description discountType discountValue minOrderValue validUntil");
 
   if (!coupon) {
     return res.json({ success: true, data: null });
@@ -27,10 +27,12 @@ const lookupCoupon = catchAsync(async (req, res) => {
     isActive: true,
     validFrom: { $lte: new Date() },
     validUntil: { $gte: new Date() },
-  }).select('code description discountType discountValue maxDiscount minOrderValue validUntil applicableTo productIds serviceIds categoryIds brandIds firstOrderOnly minItemCount excludedProductIds excludedCategoryIds');
+  }).select(
+    "code description discountType discountValue maxDiscount minOrderValue validUntil applicableTo productIds serviceIds categoryIds brandIds firstOrderOnly minItemCount excludedProductIds excludedCategoryIds",
+  );
 
   if (!coupon) {
-    return res.status(404).json({ success: false, message: 'Invalid or expired coupon' });
+    return res.status(404).json({ success: false, message: "Invalid or expired coupon" });
   }
 
   res.json({ success: true, data: { coupon } });
@@ -45,7 +47,9 @@ const getActiveCoupons = catchAsync(async (req, res) => {
     validUntil: { $gte: new Date() },
   })
     .sort({ discountValue: -1, createdAt: -1 })
-    .select('code description discountType discountValue maxDiscount minOrderValue validUntil applicableTo productIds serviceIds categoryIds brandIds firstOrderOnly minItemCount showOnBanner excludedProductIds excludedCategoryIds');
+    .select(
+      "code description discountType discountValue maxDiscount minOrderValue validUntil applicableTo productIds serviceIds categoryIds brandIds firstOrderOnly minItemCount showOnBanner excludedProductIds excludedCategoryIds",
+    );
 
   if (limit) query.limit(parseInt(limit, 10));
 
@@ -62,10 +66,12 @@ const autoApplyCoupon = catchAsync(async (req, res) => {
     validFrom: { $lte: new Date() },
     validUntil: { $gte: new Date() },
     showOnBanner: { $ne: false },
-    discountType: { $in: ['percentage', 'fixed', 'free_shipping'] },
+    discountType: { $in: ["percentage", "fixed", "free_shipping"] },
   })
     .sort({ discountValue: -1, createdAt: -1 })
-    .select('code description discountType discountValue maxDiscount minOrderValue minItemCount applicableTo productIds serviceIds categoryIds brandIds firstOrderOnly excludedProductIds excludedCategoryIds');
+    .select(
+      "code description discountType discountValue maxDiscount minOrderValue minItemCount applicableTo productIds serviceIds categoryIds brandIds firstOrderOnly excludedProductIds excludedCategoryIds",
+    );
 
   for (const coupon of coupons) {
     if (coupon.minOrderValue > 0 && subtotal < coupon.minOrderValue) continue;

@@ -1,5 +1,5 @@
-const logger = require('../utils/logger');
-const { OAuth2Client } = require('google-auth-library');
+const logger = require("../utils/logger");
+const { OAuth2Client } = require("google-auth-library");
 
 const getClient = () => {
   const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -12,7 +12,7 @@ const getClient = () => {
 const verifyGoogleToken = async (idToken) => {
   const client = getClient();
   if (!client) {
-    throw new Error('GOOGLE_CLIENT_ID not configured');
+    throw new Error("GOOGLE_CLIENT_ID not configured");
   }
 
   try {
@@ -22,8 +22,8 @@ const verifyGoogleToken = async (idToken) => {
     });
     return ticket.getPayload();
   } catch (error) {
-    logger.warn({ err: error }, 'Google token verification failed');
-    throw new Error('Invalid Google token');
+    logger.warn({ err: error }, "Google token verification failed");
+    throw new Error("Invalid Google token");
   }
 };
 

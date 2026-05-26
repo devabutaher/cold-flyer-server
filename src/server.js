@@ -3,14 +3,11 @@ const logger = require("./utils/logger");
 const app = require("./app");
 const connectDB = require("./config/db");
 
-const REQUIRED_ENV = [
-  'MONGODB_URI',
-  'JWT_SECRET',
-];
+const REQUIRED_ENV = ["MONGODB_URI", "JWT_SECRET"];
 
-const missing = REQUIRED_ENV.filter(key => !process.env[key]);
+const missing = REQUIRED_ENV.filter((key) => !process.env[key]);
 if (missing.length > 0) {
-  logger.fatal({ missing }, 'Missing required environment variables');
+  logger.fatal({ missing }, "Missing required environment variables");
   process.exit(1);
 }
 
@@ -22,13 +19,13 @@ if (process.env.NODE_ENV !== "production") {
 const PORT = process.env.PORT || 5000;
 
 connectDB().catch((err) => {
-  logger.error({ err }, 'Failed to connect to database');
+  logger.error({ err }, "Failed to connect to database");
 });
 
 module.exports = app;
 
 if (process.env.NODE_ENV !== "production") {
   app.listen(PORT, () => {
-    logger.info({ port: PORT }, 'Server started');
+    logger.info({ port: PORT }, "Server started");
   });
 }

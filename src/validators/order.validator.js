@@ -1,4 +1,4 @@
-const { z } = require('zod');
+const { z } = require("zod");
 
 const createOrderSchema = z.object({
   body: z.object({
@@ -24,7 +24,17 @@ const createOrderSchema = z.object({
 
 const updateOrderStatusSchema = z.object({
   body: z.object({
-    status: z.enum(['pending', 'confirmed', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'refunded', 'failed']),
+    status: z.enum([
+      "pending",
+      "confirmed",
+      "processing",
+      "shipped",
+      "out_for_delivery",
+      "delivered",
+      "cancelled",
+      "refunded",
+      "failed",
+    ]),
     note: z.string().optional(),
   }),
 });

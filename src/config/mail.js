@@ -1,5 +1,5 @@
-const logger = require('../utils/logger');
-const nodemailer = require('nodemailer');
+const logger = require("../utils/logger");
+const nodemailer = require("nodemailer");
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -19,10 +19,10 @@ const sendEmail = async (to, subject, html) => {
       subject,
       html,
     });
-    logger.info({ messageId: info.messageId }, 'Email sent');
+    logger.info({ messageId: info.messageId }, "Email sent");
     return true;
   } catch (error) {
-    logger.error({ err: error }, 'Email send error');
+    logger.error({ err: error }, "Email send error");
     return false;
   }
 };

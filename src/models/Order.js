@@ -1,9 +1,9 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const orderItemSchema = new mongoose.Schema({
   product: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Product',
+    ref: "Product",
     required: true,
   },
   name: String,
@@ -35,125 +35,138 @@ const refundHistorySchema = new mongoose.Schema({
   status: String,
 });
 
-const orderSchema = new mongoose.Schema({
-  orderNumber: {
-    type: String,
-    required: true,
-    unique: true,
+const orderSchema = new mongoose.Schema(
+  {
+    orderNumber: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    items: [orderItemSchema],
+    itemCount: {
+      type: Number,
+    },
+    subtotal: {
+      type: Number,
+    },
+    discount: {
+      type: Number,
+      default: 0,
+    },
+    couponDiscount: {
+      type: Number,
+      default: 0,
+    },
+    appliedCoupon: {
+      code: String,
+      discountType: String,
+      discountValue: Number,
+    },
+    shippingCost: {
+      type: Number,
+      default: 0,
+    },
+    tax: {
+      type: Number,
+      default: 0,
+    },
+    total: {
+      type: Number,
+    },
+    currency: {
+      type: String,
+      default: "BDT",
+    },
+    status: {
+      type: String,
+      enum: [
+        "pending",
+        "confirmed",
+        "processing",
+        "shipped",
+        "out_for_delivery",
+        "delivered",
+        "cancelled",
+        "refunded",
+        "failed",
+      ],
+      default: "pending",
+    },
+    paymentStatus: {
+      type: String,
+      enum: ["pending", "paid", "failed", "refunded", "partially_refunded"],
+      default: "pending",
+    },
+    paymentMethod: {
+      type: String,
+      enum: ["card", "paypal", "bank_transfer", "cod", "wallet"],
+      default: "card",
+    },
+    paymentId: {
+      type: String,
+    },
+    stripeSessionId: {
+      type: String,
+    },
+    sslcommerzTranId: {
+      type: String,
+    },
+    billingAddress: {
+      fullName: String,
+      phone: String,
+      addressLine1: String,
+      addressLine2: String,
+      city: String,
+      state: String,
+      postalCode: String,
+      country: String,
+    },
+    shippingAddress: {
+      fullName: String,
+      phone: String,
+      district: String,
+      thana: String,
+      address: String,
+      instructions: String,
+    },
+    isPickup: {
+      type: Boolean,
+      default: false,
+    },
+    estimatedDelivery: Date,
+    deliveredAt: Date,
+    notes: String,
+    internalNotes: String,
+    adminNotes: String,
+    trackingNumber: String,
+    trackingUrl: String,
+    shipmentId: String,
+    source: {
+      type: String,
+      enum: ["website", "mobile_app", "admin", "api"],
+      default: "website",
+    },
+    referralCode: String,
+    affiliatePartner: String,
+    calledBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    processedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    statusHistory: [statusHistorySchema],
+    refundHistory: [refundHistorySchema],
   },
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+  {
+    timestamps: true,
   },
-  items: [orderItemSchema],
-  itemCount: {
-    type: Number,
-  },
-  subtotal: {
-    type: Number,
-  },
-  discount: {
-    type: Number,
-    default: 0,
-  },
-  couponDiscount: {
-    type: Number,
-    default: 0,
-  },
-  appliedCoupon: {
-    code: String,
-    discountType: String,
-    discountValue: Number,
-  },
-  shippingCost: {
-    type: Number,
-    default: 0,
-  },
-  tax: {
-    type: Number,
-    default: 0,
-  },
-  total: {
-    type: Number,
-  },
-  currency: {
-    type: String,
-    default: 'BDT',
-  },
-  status: {
-    type: String,
-    enum: ['pending', 'confirmed', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'refunded', 'failed'],
-    default: 'pending',
-  },
-  paymentStatus: {
-    type: String,
-    enum: ['pending', 'paid', 'failed', 'refunded', 'partially_refunded'],
-    default: 'pending',
-  },
-  paymentMethod: {
-    type: String,
-    enum: ['card', 'paypal', 'bank_transfer', 'cod', 'wallet'],
-    default: 'card',
-  },
-  paymentId: {
-    type: String,
-  },
-  stripeSessionId: {
-    type: String,
-  },
-  sslcommerzTranId: {
-    type: String,
-  },
-  billingAddress: {
-    fullName: String,
-    phone: String,
-    addressLine1: String,
-    addressLine2: String,
-    city: String,
-    state: String,
-    postalCode: String,
-    country: String,
-  },
-  shippingAddress: {
-    fullName: String,
-    phone: String,
-    district: String,
-    thana: String,
-    address: String,
-    instructions: String,
-  },
-  isPickup: {
-    type: Boolean,
-    default: false,
-  },
-  estimatedDelivery: Date,
-  deliveredAt: Date,
-  notes: String,
-  internalNotes: String,
-  adminNotes: String,
-  trackingNumber: String,
-  trackingUrl: String,
-  shipmentId: String,
-  source: {
-    type: String,
-    enum: ['website', 'mobile_app', 'admin', 'api'],
-    default: 'website',
-  },
-  referralCode: String,
-  affiliatePartner: String,
-  calledBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-  },
-  processedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-  },
-  statusHistory: [statusHistorySchema],
-  refundHistory: [refundHistorySchema],
-}, {
-  timestamps: true,
-});
+);
 
 orderSchema.index({ user: 1 });
 orderSchema.index({ status: 1 });
@@ -161,9 +174,9 @@ orderSchema.index({ createdAt: -1 });
 orderSchema.index({ user: 1, createdAt: -1 });
 orderSchema.index({ status: 1, createdAt: -1 });
 
-orderSchema.pre('save', function (next) {
+orderSchema.pre("save", function (next) {
   if (!this.orderNumber) {
-    const { randomInt } = require('crypto');
+    const { randomInt } = require("crypto");
     const year = new Date().getFullYear();
     const random = randomInt(100000, 999999).toString();
     this.orderNumber = `CF-${year}-${random}`;
@@ -173,11 +186,11 @@ orderSchema.pre('save', function (next) {
     this.statusHistory.push({
       status: this.status,
       timestamp: new Date(),
-      note: 'Order created',
+      note: "Order created",
     });
   }
 
   next();
 });
 
-module.exports = mongoose.model('Order', orderSchema);
+module.exports = mongoose.model("Order", orderSchema);
