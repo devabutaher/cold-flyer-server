@@ -21,7 +21,15 @@ const additionalChargeSchema = new mongoose.Schema({
 const serviceBookingSchema = new mongoose.Schema(
   {
     bookingNumber: { type: String, unique: true },
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    customerName: { type: String, trim: true },
+    customerPhone: { type: String, trim: true },
+    customerEmail: { type: String, trim: true, lowercase: true },
+    acBrand: { type: String, trim: true },
+    acModel: { type: String, trim: true },
+    acTon: { type: String, trim: true },
+    acGasType: { type: String, trim: true },
+    acType: { type: String, trim: true },
     service: { type: mongoose.Schema.Types.ObjectId, ref: "Service", required: true },
     technician: { type: mongoose.Schema.Types.ObjectId, ref: "Technician" },
     items: [serviceItemSchema],

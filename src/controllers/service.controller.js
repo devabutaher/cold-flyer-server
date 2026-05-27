@@ -6,6 +6,7 @@ const logger = require("../utils/logger");
 const { createServiceNotification } = require("../services/notification.service");
 const { sendBookingConfirmationEmail } = require("../services/email.service");
 const Technician = require("../models/Technician");
+const Customer = require("../models/Customer");
 
 const getServices = catchAsync(async (req, res) => {
   const { search, category, serviceType, sortBy, page = 1, limit = 20 } = req.query;
@@ -113,7 +114,22 @@ const updateService = catchAsync(async (req, res) => {
 });
 
 const createBooking = catchAsync(async (req, res) => {
-  const { service, scheduledDate, scheduledTime, propertyDetails, serviceAddress, notes } = req.body;
+  const {
+    service,
+    scheduledDate,
+    scheduledTime,
+    propertyDetails,
+    serviceAddress,
+    notes,
+    acBrand,
+    acModel,
+    acTon,
+    acGasType,
+    acType,
+    customerName,
+    customerPhone,
+    customerEmail,
+  } = req.body;
 
   const serviceData = await Service.findById(service);
   if (!serviceData) {
@@ -121,8 +137,13 @@ const createBooking = catchAsync(async (req, res) => {
   }
 
   const price = serviceData.basePrice || 0;
-  const booking = await ServiceBooking.create({
-    user: req.user._id,
+
+  // Resolve customer identity — logged-in user or guest
+  const resolvedName = customerName || req.user?.name || "Guest";
+  const resolvedPhone = customerPhone || req.user?.phone || "";
+  const resolvedEmail = customerEmail || req.user?.email || "";
+
+  const bookingData = {
     service,
     items: [{ service, name: serviceData.name, price, quantity: 1 }],
     subtotal: price,
@@ -132,17 +153,75 @@ const createBooking = catchAsync(async (req, res) => {
     propertyDetails,
     serviceAddress,
     notes,
+    acBrand,
+    acModel,
+    acTon,
+    acGasType,
+    acType,
+    customerName: resolvedName,
+    customerPhone: resolvedPhone,
+    customerEmail: resolvedEmail,
     source: "website",
-  });
+  };
+
+  if (req.user) {
+    bookingData.user = req.user._id;
+  }
+
+  const booking = await ServiceBooking.create(bookingData);
 
   await Service.findByIdAndUpdate(service, { $inc: { bookingCount: 1 } });
 
-  req.user.serviceBookings.push(booking._id);
-  await req.user.save();
+  // Link booking to user if logged in
+  if (req.user) {
+    req.user.serviceBookings.push(booking._id);
+    await req.user.save();
+  }
 
-  sendBookingConfirmationEmail(req.user.email, req.user.name || req.user.email, booking, "confirmed").catch((err) =>
-    logger.error({ err, bookingId: booking._id }, "sendBookingConfirmationEmail failed"),
-  );
+  // Auto-create or update Customer record by phone or email
+  const lookupCriteria = [];
+  if (resolvedPhone) lookupCriteria.push({ phone: resolvedPhone });
+  if (resolvedEmail) lookupCriteria.push({ email: resolvedEmail });
+
+  if (lookupCriteria.length > 0) {
+    const existingCustomer = await Customer.findOne({ $or: lookupCriteria });
+
+    if (existingCustomer) {
+      existingCustomer.brand = acBrand || existingCustomer.brand;
+      existingCustomer.model = acModel || existingCustomer.model;
+      existingCustomer.acTon = acTon || existingCustomer.acTon;
+      existingCustomer.gasType = acGasType || existingCustomer.gasType;
+      existingCustomer.service = serviceData.name;
+      existingCustomer.bookingCount = (existingCustomer.bookingCount || 1) + 1;
+      if (!existingCustomer.bookingIds) existingCustomer.bookingIds = [];
+      existingCustomer.bookingIds.push(booking._id);
+      await existingCustomer.save();
+    } else {
+      await Customer.create({
+        name: resolvedName,
+        phone: resolvedPhone,
+        email: resolvedEmail || undefined,
+        brand: acBrand,
+        model: acModel,
+        acTon,
+        gasType: acGasType,
+        service: serviceData.name,
+        amount: price,
+        source: "website",
+        addedBy: resolvedName,
+        addedDate: new Date().toISOString().split("T")[0],
+        bookingCount: 1,
+        bookingIds: [booking._id],
+      });
+    }
+  }
+
+  // Send email (only for logged-in users with email)
+  if (req.user?.email) {
+    sendBookingConfirmationEmail(req.user.email, resolvedName, booking, "confirmed").catch((err) =>
+      logger.error({ err, bookingId: booking._id }, "sendBookingConfirmationEmail failed"),
+    );
+  }
 
   res.status(201).json({
     success: true,
@@ -193,7 +272,11 @@ const getBookingById = catchAsync(async (req, res) => {
     throw ApiError.notFound("Booking not found");
   }
 
-  if (booking.user.toString() !== req.user._id.toString() && req.user.role !== "admin") {
+  if (booking.user && booking.user.toString() !== req.user._id.toString() && req.user.role !== "admin") {
+    throw ApiError.forbidden("Not authorized to view this booking");
+  }
+
+  if (!booking.user && req.user.role !== "admin") {
     throw ApiError.forbidden("Not authorized to view this booking");
   }
 
@@ -234,7 +317,9 @@ const scheduleBooking = catchAsync(async (req, res) => {
   booking.status = "scheduled";
   await booking.save();
 
-  await createServiceNotification(booking.user, booking, "scheduled");
+  if (booking.user) {
+    await createServiceNotification(booking.user, booking, "scheduled");
+  }
 
   const populatedBooking = await ServiceBooking.findById(booking._id)
     .populate("user", "name email")
@@ -314,7 +399,11 @@ const cancelBooking = catchAsync(async (req, res) => {
     throw ApiError.notFound("Booking not found");
   }
 
-  if (booking.user.toString() !== req.user._id.toString() && req.user.role !== "admin") {
+  if (booking.user) {
+    if (booking.user.toString() !== req.user._id.toString() && req.user.role !== "admin") {
+      throw ApiError.forbidden("Not authorized to cancel this booking");
+    }
+  } else if (req.user.role !== "admin") {
     throw ApiError.forbidden("Not authorized to cancel this booking");
   }
 
@@ -326,7 +415,9 @@ const cancelBooking = catchAsync(async (req, res) => {
   booking.internalNotes = reason;
   await booking.save();
 
-  await createServiceNotification(booking.user, booking, "cancelled");
+  if (booking.user) {
+    await createServiceNotification(booking.user, booking, "cancelled");
+  }
 
   const cancelledBooking = await ServiceBooking.findById(booking._id)
     .populate("user", "name email")
@@ -361,7 +452,9 @@ const confirmBooking = catchAsync(async (req, res) => {
   booking.status = "confirmed";
   await booking.save();
 
-  await createServiceNotification(booking.user, booking, "confirmed");
+  if (booking.user) {
+    await createServiceNotification(booking.user, booking, "confirmed");
+  }
 
   const populatedBooking = await ServiceBooking.findById(booking._id)
     .populate("user", "name email")

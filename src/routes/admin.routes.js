@@ -9,6 +9,7 @@ const {
   getUser,
   updateUserRole,
   deleteUser,
+  createUser,
   getAllProducts,
   getAllOrders,
   getAllServices,
@@ -23,6 +24,7 @@ const {
   getTechnician,
   updateTechnician,
   deleteTechnician,
+  createWorker,
   getApplications,
   getApplication,
   approveApplication,
@@ -41,6 +43,7 @@ router.get("/users", getAllUsers);
 router.get("/users/:id", getUser);
 router.patch("/users/:id", updateUserRole);
 router.delete("/users/:id", deleteUser);
+router.post("/users", createUser);
 
 router.get("/products", getAllProducts);
 router.get("/orders", getAllOrders);
@@ -58,6 +61,7 @@ router.post("/technicians", createTechnician);
 router.get("/technicians/:id", getTechnician);
 router.patch("/technicians/:id", updateTechnician);
 router.delete("/technicians/:id", deleteTechnician);
+router.post("/workers", createWorker);
 
 router.get("/applications", getApplications);
 router.get("/applications/:id", getApplication);

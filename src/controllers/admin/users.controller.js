@@ -72,4 +72,25 @@ const deleteUser = catchAsync(async (req, res) => {
   res.json({ success: true, message: "User deleted." });
 });
 
-module.exports = { getAllUsers, getUser, updateUserRole, deleteUser };
+const createUser = catchAsync(async (req, res) => {
+  const { name, email, phone, password, role } = req.body;
+
+  if (!name || !email || !password) {
+    throw ApiError.badRequest("Name, email, and password are required");
+  }
+
+  const existing = await User.findOne({ email });
+  if (existing) {
+    throw ApiError.conflict("A user with this email already exists");
+  }
+
+  const user = await User.create({ name, email, phone, password, role: role || "user" });
+
+  res.status(201).json({
+    success: true,
+    message: "User created successfully",
+    data: { user },
+  });
+});
+
+module.exports = { getAllUsers, getUser, updateUserRole, deleteUser, createUser };

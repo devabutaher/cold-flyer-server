@@ -104,4 +104,44 @@ const deleteTechnician = catchAsync(async (req, res) => {
   res.json({ success: true, message: "Technician profile removed" });
 });
 
-module.exports = { getTechnicians, createTechnician, getTechnician, updateTechnician, deleteTechnician };
+const createWorker = catchAsync(async (req, res) => {
+  const { name, email, phone, password, specializations, salary } = req.body;
+
+  if (!name || !email || !password) {
+    throw ApiError.badRequest("Name, email, and password are required");
+  }
+
+  const existing = await User.findOne({ email });
+  if (existing) {
+    throw ApiError.conflict("A user with this email already exists");
+  }
+
+  const user = await User.create({ name, email, phone, password, role: "technician" });
+
+  const employeeId = `CF-${String(Math.floor(10000 + Math.random() * 90000)).slice(0, 5)}`;
+
+  const technician = await Technician.create({
+    user: user._id,
+    employeeId,
+    specializations: specializations
+      ? (Array.isArray(specializations) ? specializations : specializations.split(",").map((s) => s.trim()).filter(Boolean))
+      : [],
+    salary: salary || 0,
+    hireDate: new Date(),
+    status: "available",
+    isActive: true,
+  });
+
+  user.technicianProfile = technician._id;
+  await user.save();
+
+  const populated = await Technician.findById(technician._id).populate("user", "name email phone avatar");
+
+  res.status(201).json({
+    success: true,
+    message: "Worker created successfully",
+    data: { technician: populated },
+  });
+});
+
+module.exports = { getTechnicians, createTechnician, getTechnician, updateTechnician, deleteTechnician, createWorker };

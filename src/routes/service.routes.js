@@ -28,7 +28,7 @@ router.get("/", validate(serviceQuerySchema), getServices);
 router.get("/slug/:slug", getServiceBySlug);
 
 // Booking CRUD must be BEFORE /:id routes to avoid conflict
-router.post("/bookings", authenticate, createBooking);
+router.post("/bookings", createBooking);
 router.get("/bookings", authenticate, getBookings);
 router.get("/bookings/:id", authenticate, getBookingById);
 router.patch("/bookings/:id", authenticate, authorize("admin"), updateBooking);

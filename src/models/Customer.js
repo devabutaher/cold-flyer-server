@@ -26,6 +26,8 @@ const customerSchema = new mongoose.Schema(
     brand: { type: String, trim: true },
     model: { type: String, trim: true },
     unit: { type: String, trim: true },
+    acTon: { type: String, trim: true },
+    gasType: { type: String, trim: true },
     installDate: { type: String },
     service: {
       type: String,
@@ -42,6 +44,8 @@ const customerSchema = new mongoose.Schema(
       enum: ["active", "blocked"],
       default: "active",
     },
+    bookingCount: { type: Number, default: 1 },
+    bookingIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "ServiceBooking" }],
     source: {
       type: String,
       enum: ["admin", "website"],
