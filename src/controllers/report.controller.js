@@ -98,7 +98,8 @@ const getReport = catchAsync(async (req, res) => {
   // Active workers
   const workers = await Technician.find({ isActive: true })
     .populate("user", "name email phone")
-    .select("nid bloodGroup salary");
+    .select("nid bloodGroup salary")
+    .sort({ createdAt: -1 });
 
   res.json({
     success: true,

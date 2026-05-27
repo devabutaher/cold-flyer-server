@@ -84,6 +84,7 @@ const serviceSchema = new mongoose.Schema(
 
 serviceSchema.index({ category: 1 });
 serviceSchema.index({ isFeatured: 1 });
+serviceSchema.index({ createdAt: -1 });
 
 serviceSchema.pre("save", function (next) {
   if (this.isModified("name") && !this.slug) {

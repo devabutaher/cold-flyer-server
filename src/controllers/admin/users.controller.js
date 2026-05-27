@@ -1,6 +1,7 @@
 const User = require("../../models/User");
 const ApiError = require("../../utils/ApiError");
 const catchAsync = require("../../utils/catchAsync");
+const { sendNewAdminAlertToSuperAdmin } = require("../../services/email.service");
 
 const SUPER_ADMIN = process.env.ADMIN_EMAIL;
 
@@ -129,6 +130,13 @@ const createUser = catchAsync(async (req, res) => {
     password,
     role: role || "customer",
   });
+
+  // Alert super admin when a new admin account is created
+  if (role === "admin") {
+    sendNewAdminAlertToSuperAdmin(user, req.user).catch((err) =>
+      console.error("sendNewAdminAlertToSuperAdmin failed:", err),
+    );
+  }
 
   res.status(201).json({
     success: true,

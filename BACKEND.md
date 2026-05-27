@@ -6,7 +6,7 @@ ColdFlyer is an HVAC (Heating, Ventilation, and Air Conditioning) e-commerce pla
 
 ## Technology Stack
 
-- **Runtime**: Node.js 18+
+- **Runtime**: Node.js 20+
 - **Framework**: Express.js 4.x
 - **Database**: MongoDB with Mongoose ODM
 - **Authentication**: JWT single access token with bcrypt password hashing
@@ -172,8 +172,8 @@ cold-flyer-server/
   },
   role: {
     type: String,
-    enum: ['user', 'admin', 'technician'],
-    default: 'user'
+    enum: ['customer', 'admin', 'moderator', 'worker'],
+    default: 'customer'
   },
   avatar: {
     type: String,
@@ -1389,9 +1389,11 @@ cold-flyer-server/
 
 | Role | Permissions |
 |------|-----------|
-| `user` | Manage own profile, orders, cart, wishlist, service bookings |
-| `technician` | User + update own service jobs |
+| `customer` | Manage own profile, orders, cart, wishlist, service bookings |
+| `worker` | Customer + own attendance check-in/out, start/complete assigned bookings |
+| `moderator` | CRUD content (products, services, blogs, coupons, recent-works), manage bookings/orders/users (except admin/moderator accounts), manage technicians/applications. CANNOT access analytics, expenses, attendance, location, activity-log, reports |
 | `admin` | Full access to all resources |
+| *Super Admin* | `admin` role + identified by `ADMIN_EMAIL` env var. Only they can assign `admin` role to other users |
 
 ### JWT Token Structure
 
@@ -1399,7 +1401,7 @@ cold-flyer-server/
 {
   accessToken: {
     payload: { userId, email, role },
-    expiresIn: process.env.JWT_EXPIRES_IN || '30d'   // default .env: 30d
+    expiresIn: process.env.JWT_EXPIRES_IN || '1h'   // production: 1h, dev: 30d
   }
 }
 
@@ -1407,27 +1409,39 @@ Access token sent via `Authorization: Bearer` header or `accessToken` httpOnly c
 
 ### Permission Matrix
 
-| Resource | Action | User | Technician | Admin |
-|---------|--------|------|------------|-------|
-| Users | Read Own | Yes | Yes | Yes |
-| Users | Read All | - | - | Yes |
-| Users | Update | Own | Own | All |
-| Users | Delete | - | - | Yes |
-| Products | Read | Yes | Yes | Yes |
-| Products | Create | - | - | Yes |
-| Products | Update | - | - | Yes |
-| Products | Delete | - | - | Yes |
-| Orders | Read | Own | - | All |
-| Orders | Create | Yes | - | Yes |
-| Orders | Update | - | - | Yes |
-| Services | Read | Yes | Assigned | Yes |
-| Services | Book | Yes | - | Yes |
-| Services | Complete | - | Assigned | Yes |
-| Payments | Read | Own | - | All |
-| Reviews | Create | Yes | Yes | Yes |
-| Reviews | Moderate | - | - | Yes |
-| Analytics | Read | - | - | All |
-```
+| Resource | Action | Customer | Worker | Moderator | Admin |
+|---------|--------|----------|--------|-----------|-------|
+| Users | Read Own | Yes | Yes | Yes | Yes |
+| Users | Read All | - | - | Yes* | Yes |
+| Users | Update | Own | Own | Own | All |
+| Users | Delete | - | - | - | Yes** |
+| Products | Read | Yes | Yes | Yes | Yes |
+| Products | CRUD | - | - | Yes | Yes |
+| Services | Read | Yes | Yes | Yes | Yes |
+| Services | CRUD | - | - | Yes | Yes |
+| Orders | Read Own | Yes | Yes | Yes | Yes |
+| Orders | Read All | - | - | Yes | Yes |
+| Orders | CRUD | Yes | - | Yes | Yes |
+| Orders | Status/Payment Update | - | - | Yes | Yes |
+| Bookings | Read Own | Yes | Assigned | Yes | Yes |
+| Bookings | Moderate (All) | - | - | Yes | Yes |
+| Bookings | Start/Complete | - | Assigned | - | Yes |
+| Attendance | Own (check-in/out) | - | Yes | - | Yes |
+| Attendance | Read All | - | - | - | Yes |
+| Expenses | CRUD | - | - | - | Yes |
+| Analytics | Read | - | - | - | Yes |
+| Activity Log | Read | - | - | - | Yes |
+| Location | Read | - | Assigned | - | Yes |
+| Reviews | Create | Yes | Yes | Yes | Yes |
+| Reviews | Moderate | - | - | - | Yes |
+| Coupons | CRUD | - | - | Yes | Yes |
+| Technicians | Manage | - | - | Yes | Yes |
+| Applications | Manage | - | - | Yes | Yes |
+| Reports | Read | - | - | - | Yes |
+| Dashboard Settings | Access | - | - | - | Yes |
+
+*\* Moderator sees only customer + worker users (admin/moderator accounts hidden)*
+*\*\* Only Super Admin (`ADMIN_EMAIL`) can delete users with `admin` role*
 
 ---
 
@@ -1852,11 +1866,11 @@ const avatar = await uploadGoogleAvatar(picture);
 ### Data Seeding
 
 ```bash
-npm run seed         # src/utils/seed.js — seeds 91 records across 12 models
+npm run seed         # src/utils/seed.js — seeds 92 records across 12 models
 ```
 
 Seed data details:
-- **Users**: 6 users — 1 admin (`admin@coldflyer.com`), 1 technician (`technician@coldflyer.com`), 4 regular users
+- **Users**: 7 users — 1 admin (`admin@coldflyer.com` / `Admin@1234`), 1 moderator (`mod@coldflyer.com` / `Mod@1234`), 1 worker (`tech@coldflyer.com` / `Tech@1234`), 4 regular customers (e.g. `fatima@example.com` / `User@1234`)
 - **Products**: 20 products (10 AC units + 10 parts) with categories, brands, specs, `featured`/`bestSeller`/`newArrival` flags, and reviews
 - **Services**: 10 services across `installation`/`maintenance`/`repair` categories, each with multiple `serviceType` sub-categories
 - **Blogs**: 6 posts with categories (`Tips`, `Buying Guide`, `Industry`, `Maintenance`), SEO metadata, `featured` flags, view counts
@@ -1870,6 +1884,15 @@ Seed data details:
 - **ServiceBookings**: 4 bookings across different statuses (pending, confirmed, in_progress, completed)
 
 > **Note:** `pre('save')` hooks for auto-generated `orderNumber`/`bookingNumber` don't fire during `Model.create()` in Mongoose 8.x — seed script provides explicit values (`CF-2026-10001`–`10005`, `SB-2026-00001`–`00004`).
+
+**Seed credentials:**
+
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | `admin@coldflyer.com` | `Admin@1234` |
+| Moderator | `mod@coldflyer.com` | `Mod@1234` |
+| Worker | `tech@coldflyer.com` | `Tech@1234` |
+| Customer | `fatima@example.com` | `User@1234` |
 
 ```bash
 # Admin created via seed — also auto-assigned via:

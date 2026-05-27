@@ -1,8 +1,7 @@
 const logger = require("../utils/logger");
 const express = require("express");
 const router = express.Router();
-const { authenticate } = require("../middleware/auth.middleware");
-const { createPaymentIntent, handleWebhook, getPaymentById } = require("../controllers/payment.controller");
+
 const Order = require("../models/Order");
 const { sendOrderConfirmationEmail } = require("../services/email.service");
 
@@ -94,12 +93,8 @@ const webhookHandler = async (req, res) => {
   res.json({ received: true });
 };
 
-// Stripe PaymentIntent endpoints (authenticated)
-router.post("/create-payment-intent", authenticate, createPaymentIntent);
-router.get("/:id", authenticate, getPaymentById);
-
 // Stripe webhook (raw body, no auth)
-router.post("/webhook", webhookHandler);
+router.post("/webhook", express.raw({ type: "application/json" }), webhookHandler);
 
 module.exports = router;
 module.exports.webhookHandler = webhookHandler;

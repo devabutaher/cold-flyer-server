@@ -10,6 +10,7 @@ const {
 } = require("../services/email.service");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
+const logger = require("../utils/logger");
 
 const submitApplication = catchAsync(async (req, res) => {
   const { name, email, phone, position, experience, skills, coverLetter, resumeUrl } = req.body;
@@ -34,8 +35,10 @@ const submitApplication = catchAsync(async (req, res) => {
     resumeUrl: resumeUrl || null,
   });
 
-  // Send acknowledgment email
-  await sendApplicationReceivedEmail(application.email, application.name, application.position);
+  // Send acknowledgment email (fire-and-forget)
+  sendApplicationReceivedEmail(application.email, application.name, application.position).catch((err) =>
+    logger.error({ err, email: application.email }, "sendApplicationReceivedEmail failed"),
+  );
 
   res.status(201).json({
     success: true,
@@ -137,8 +140,10 @@ const approveApplication = catchAsync(async (req, res) => {
   application.reviewedAt = new Date();
   await application.save();
 
-  // Send approval email
-  await sendApplicationApprovedEmail(application.email, application.name);
+  // Send approval email (fire-and-forget)
+  sendApplicationApprovedEmail(application.email, application.name).catch((err) =>
+    logger.error({ err, email: application.email }, "sendApplicationApprovedEmail failed"),
+  );
 
   const populated = await Technician.findById(technician._id).populate("user", "name email phone avatar");
 
@@ -169,8 +174,10 @@ const rejectApplication = catchAsync(async (req, res) => {
   application.notes = notes || "";
   await application.save();
 
-  // Send rejection email
-  await sendApplicationRejectedEmail(application.email, application.name, notes);
+  // Send rejection email (fire-and-forget)
+  sendApplicationRejectedEmail(application.email, application.name, notes).catch((err) =>
+    logger.error({ err, email: application.email }, "sendApplicationRejectedEmail failed"),
+  );
 
   res.json({
     success: true,

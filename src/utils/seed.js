@@ -196,7 +196,6 @@ async function seed() {
     console.log(`✓ Seeded ${users.length} users`);
 
     const adminUser = users[0];
-    const moderatorUser = users[1];
     const techUser = users[2];
     const regularUsers = users.slice(3);
 

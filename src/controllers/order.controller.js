@@ -7,7 +7,11 @@ const logger = require("../utils/logger");
 const { validateCouponScope, computeCouponDiscount } = require("../utils/coupon-scope");
 const catchAsync = require("../utils/catchAsync");
 const { createOrderNotification } = require("../services/notification.service");
-const { sendOrderConfirmationEmail } = require("../services/email.service");
+const {
+  sendOrderConfirmationEmail,
+  sendOrderStatusUpdateEmail,
+  sendNewOrderAlertToAdmin,
+} = require("../services/email.service");
 
 const createOrder = catchAsync(async (req, res) => {
   const {
@@ -167,8 +171,14 @@ const createOrder = catchAsync(async (req, res) => {
   req.user.orders.push(order._id);
   await req.user.save();
 
+  // Send confirmation to customer
   sendOrderConfirmationEmail(req.user.email, req.user.name, order).catch((err) =>
     logger.error({ err, orderId: order._id }, "sendOrderConfirmationEmail failed"),
+  );
+
+  // Alert super admin
+  sendNewOrderAlertToAdmin(order).catch((err) =>
+    logger.error({ err, orderId: order._id }, "sendNewOrderAlertToAdmin failed"),
   );
 
   res.status(201).json({
@@ -236,7 +246,10 @@ const getOrderById = catchAsync(async (req, res) => {
   const userId = req.user._id.toString();
   const orderUserId = order.user?._id?.toString() || order.user?.toString();
 
-  // Allow if: order has no user (guest order), OR user owns the order, OR user is admin/moderator
+  // Guest orders (no user) visible only to admin/moderator; owned orders visible to owner
+  if (!orderUserId && !["admin", "moderator"].includes(req.user.role)) {
+    throw ApiError.forbidden("You do not have permission to view this order");
+  }
   if (orderUserId && userId !== orderUserId && !["admin", "moderator"].includes(req.user.role)) {
     throw ApiError.forbidden("You do not have permission to view this order");
   }
@@ -271,6 +284,21 @@ const updateOrderStatus = catchAsync(async (req, res) => {
   await order.save();
 
   await createOrderNotification(order.user, order, status);
+
+  // Send status update email to customer
+  if (order.user) {
+    const User = require("../models/User");
+    const user = await User.findById(order.user).select("name email");
+    if (user && user.email) {
+      // Determine previous status from history
+      const history = order.statusHistory || [];
+      const prevEntry = history.length >= 2 ? history[history.length - 2] : null;
+      const previousStatus = prevEntry ? prevEntry.status : undefined;
+      sendOrderStatusUpdateEmail(user.email, user.name, order, previousStatus).catch((err) =>
+        logger.error({ err, orderId: order._id }, "sendOrderStatusUpdateEmail failed"),
+      );
+    }
+  }
 
   res.json({
     success: true,

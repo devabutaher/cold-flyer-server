@@ -99,9 +99,6 @@ app.use(
 // ── Compression ────────────────────────────────────────
 app.use(compression());
 
-// CRITICAL: Webhooks must be BEFORE any body parsing
-app.post("/api/payments/webhook", express.raw({ type: "application/json" }), paymentRoutes.webhookHandler);
-
 // ── CORS ───────────────────────────────────────────────
 app.use(
   cors({
@@ -144,6 +141,10 @@ app.get("/api/health", (req, res) => {
     },
   });
 });
+
+// ── Public stats (no auth) ─────────────────────────────
+const statsRoutes = require("./routes/stats.routes");
+app.use("/api/public/stats", statsRoutes);
 
 // ── Auth routes ────────────────────────────────────────
 app.use("/api/auth", authRoutes);

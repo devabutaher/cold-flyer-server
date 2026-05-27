@@ -7,20 +7,14 @@ const { blogSchema, blogQuerySchema } = require("../validators/blog.validator");
 const {
   getBlogs,
   getBlogBySlug,
-  getBlogById,
-  getFeaturedBlogs,
-  getBlogCategories,
   createBlog,
   updateBlog,
   deleteBlog,
 } = require("../controllers/blog.controller");
 
 // Public routes
-router.get("/featured", getFeaturedBlogs);
-router.get("/categories", getBlogCategories);
 router.get("/slug/:slug", getBlogBySlug);
 router.get("/", validate(blogQuerySchema), getBlogs);
-router.get("/:id", getBlogById);
 
 // Admin & Moderator routes
 router.post("/", authenticate, authorize("admin", "moderator"), validate(blogSchema), createBlog);

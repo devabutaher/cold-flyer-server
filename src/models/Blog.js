@@ -60,6 +60,7 @@ const blogSchema = new mongoose.Schema(
 
 blogSchema.index({ category: 1 });
 blogSchema.index({ featured: 1 });
+blogSchema.index({ createdAt: -1 });
 
 blogSchema.pre("save", function (next) {
   if (this.isModified("title") && !this.slug) {

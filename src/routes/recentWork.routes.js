@@ -7,20 +7,14 @@ const { recentWorkSchema, recentWorkQuerySchema } = require("../validators/recen
 const {
   getRecentWorks,
   getRecentWorkBySlug,
-  getRecentWorkById,
-  getFeaturedRecentWorks,
-  getRecentWorkCategories,
   createRecentWork,
   updateRecentWork,
   deleteRecentWork,
 } = require("../controllers/recentWork.controller");
 
 // Public routes
-router.get("/featured", getFeaturedRecentWorks);
-router.get("/categories", getRecentWorkCategories);
 router.get("/slug/:slug", getRecentWorkBySlug);
 router.get("/", validate(recentWorkQuerySchema), getRecentWorks);
-router.get("/:id", getRecentWorkById);
 
 // Admin & Moderator routes
 router.post("/", authenticate, authorize("admin", "moderator"), validate(recentWorkSchema), createRecentWork);

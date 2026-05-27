@@ -66,31 +66,49 @@ const createServiceNotification = async (userId, booking, status) => {
 };
 
 const getUserNotifications = async (userId, page = 1, limit = 20) => {
-  const notifications = await Notification.find({ user: userId })
-    .sort({ createdAt: -1 })
-    .skip((page - 1) * limit)
-    .limit(limit);
+  try {
+    const notifications = await Notification.find({ user: userId })
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
 
-  const total = await Notification.countDocuments({ user: userId });
+    const total = await Notification.countDocuments({ user: userId });
 
-  return {
-    notifications,
-    total,
-    page,
-    totalPages: Math.ceil(total / limit),
-  };
+    return {
+      notifications,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    };
+  } catch (error) {
+    logger.error({ err: error }, "getUserNotifications failed");
+    return { notifications: [], total: 0, page, totalPages: 0 };
+  }
 };
 
 const markAsRead = async (notificationId, userId) => {
-  return Notification.findOneAndUpdate(
-    { _id: notificationId, user: userId },
-    { isRead: true, readAt: new Date() },
-    { new: true },
-  );
+  try {
+    return await Notification.findOneAndUpdate(
+      { _id: notificationId, user: userId },
+      { isRead: true, readAt: new Date() },
+      { new: true },
+    );
+  } catch (error) {
+    logger.error({ err: error }, "markAsRead failed");
+    return null;
+  }
 };
 
 const markAllAsRead = async (userId) => {
-  return Notification.updateMany({ user: userId, isRead: false }, { isRead: true, readAt: new Date() });
+  try {
+    return await Notification.updateMany(
+      { user: userId, isRead: false },
+      { isRead: true, readAt: new Date() },
+    );
+  } catch (error) {
+    logger.error({ err: error }, "markAllAsRead failed");
+    return { modifiedCount: 0 };
+  }
 };
 
 module.exports = {

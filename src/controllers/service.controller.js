@@ -4,7 +4,7 @@ const ApiError = require("../utils/ApiError");
 const catchAsync = require("../utils/catchAsync");
 const logger = require("../utils/logger");
 const { createServiceNotification } = require("../services/notification.service");
-const { sendBookingConfirmationEmail } = require("../services/email.service");
+const { sendBookingConfirmationEmail, sendNewBookingAlertToAdmin } = require("../services/email.service");
 const Technician = require("../models/Technician");
 const Customer = require("../models/Customer");
 
@@ -216,12 +216,20 @@ const createBooking = catchAsync(async (req, res) => {
     }
   }
 
-  // Send email (only for logged-in users with email)
-  if (req.user?.email) {
-    sendBookingConfirmationEmail(req.user.email, resolvedName, booking, "confirmed").catch((err) =>
+  // Send confirmation email (logged-in user or guest with email)
+  if (resolvedEmail) {
+    sendBookingConfirmationEmail(resolvedEmail, resolvedName, booking, "confirmed").catch((err) =>
       logger.error({ err, bookingId: booking._id }, "sendBookingConfirmationEmail failed"),
     );
   }
+
+  // Alert super admin
+  const populatedBookingForAlert = await ServiceBooking.findById(booking._id)
+    .populate("user", "name email phone")
+    .populate("service", "name");
+  sendNewBookingAlertToAdmin(populatedBookingForAlert || booking).catch((err) =>
+    logger.error({ err, bookingId: booking._id }, "sendNewBookingAlertToAdmin failed"),
+  );
 
   res.status(201).json({
     success: true,
@@ -292,10 +300,40 @@ const getBookingById = catchAsync(async (req, res) => {
   });
 });
 
+const ALLOWED_BOOKING_FIELDS = [
+  "scheduledDate",
+  "scheduledTime",
+  "status",
+  "technician",
+  "notes",
+  "internalNotes",
+  "diagnosis",
+  "workDone",
+  "partsUsed",
+  "additionalCharges",
+  "afterPhotos",
+  "customerRating",
+  "customerReview",
+  "warrantyInfo",
+  "completedAt",
+  "propertyDetails",
+  "serviceAddress",
+  "acBrand",
+  "acModel",
+  "acTon",
+  "acGasType",
+  "acType",
+];
+
 const updateBooking = catchAsync(async (req, res) => {
   const { id } = req.params;
 
-  const booking = await ServiceBooking.findByIdAndUpdate(id, req.body, { new: true, runValidators: true });
+  const updates = {};
+  for (const key of ALLOWED_BOOKING_FIELDS) {
+    if (key in req.body) updates[key] = req.body[key];
+  }
+
+  const booking = await ServiceBooking.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
 
   if (!booking) {
     throw ApiError.notFound("Booking not found");
@@ -330,6 +368,8 @@ const scheduleBooking = catchAsync(async (req, res) => {
   const populatedBooking = await ServiceBooking.findById(booking._id)
     .populate("user", "name email")
     .populate("service", "name");
+
+  // Send to logged-in user
   if (populatedBooking?.user?.email) {
     sendBookingConfirmationEmail(
       populatedBooking.user.email,
@@ -337,6 +377,16 @@ const scheduleBooking = catchAsync(async (req, res) => {
       populatedBooking,
       "scheduled",
     ).catch((err) => logger.error({ err, bookingId: booking._id }, "sendBookingConfirmationEmail failed"));
+  }
+
+  // Send to guest customer
+  if (!populatedBooking?.user?.email && populatedBooking?.customerEmail) {
+    sendBookingConfirmationEmail(
+      populatedBooking.customerEmail,
+      populatedBooking.customerName || "Valued Customer",
+      populatedBooking,
+      "scheduled",
+    ).catch((err) => logger.error({ err, bookingId: booking._id }, "sendBookingConfirmationEmail for guest failed"));
   }
 
   res.json({
@@ -396,6 +446,15 @@ const completeBooking = catchAsync(async (req, res) => {
       "completed",
     ).catch((err) => logger.error({ err, bookingId: booking._id }, "sendBookingConfirmationEmail failed"));
   }
+  // Send to guest customer
+  if (!completedBooking?.user?.email && completedBooking?.customerEmail) {
+    sendBookingConfirmationEmail(
+      completedBooking.customerEmail,
+      completedBooking.customerName || "Valued Customer",
+      completedBooking,
+      "completed",
+    ).catch((err) => logger.error({ err, bookingId: booking._id }, "sendBookingConfirmationEmail for guest failed"));
+  }
 
   res.json({
     success: true,
@@ -413,7 +472,9 @@ const cancelBooking = catchAsync(async (req, res) => {
     throw ApiError.notFound("Booking not found");
   }
 
-  const canCancel = ["admin", "moderator"].includes(req.user.role) || (booking.user && booking.user.toString() === req.user._id.toString());
+  const canCancel =
+    ["admin", "moderator"].includes(req.user.role) ||
+    (booking.user && booking.user.toString() === req.user._id.toString());
 
   if (booking.user) {
     if (!canCancel) {
@@ -445,6 +506,15 @@ const cancelBooking = catchAsync(async (req, res) => {
       cancelledBooking,
       "cancelled",
     ).catch((err) => logger.error({ err, bookingId: booking._id }, "sendBookingConfirmationEmail failed"));
+  }
+  // Send to guest customer
+  if (!cancelledBooking?.user?.email && cancelledBooking?.customerEmail) {
+    sendBookingConfirmationEmail(
+      cancelledBooking.customerEmail,
+      cancelledBooking.customerName || "Valued Customer",
+      cancelledBooking,
+      "cancelled",
+    ).catch((err) => logger.error({ err, bookingId: booking._id }, "sendBookingConfirmationEmail for guest failed"));
   }
 
   res.json({
@@ -482,6 +552,15 @@ const confirmBooking = catchAsync(async (req, res) => {
       populatedBooking,
       "confirmed",
     ).catch((err) => logger.error({ err, bookingId: booking._id }, "sendBookingConfirmationEmail failed"));
+  }
+  // Send to guest customer
+  if (!populatedBooking?.user?.email && populatedBooking?.customerEmail) {
+    sendBookingConfirmationEmail(
+      populatedBooking.customerEmail,
+      populatedBooking.customerName || "Valued Customer",
+      populatedBooking,
+      "confirmed",
+    ).catch((err) => logger.error({ err, bookingId: booking._id }, "sendBookingConfirmationEmail for guest failed"));
   }
 
   res.json({

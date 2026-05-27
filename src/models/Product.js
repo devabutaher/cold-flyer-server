@@ -111,6 +111,7 @@ productSchema.index({ category: 1 });
 productSchema.index({ brand: 1 });
 productSchema.index({ productType: 1 });
 productSchema.index({ price: 1 });
+productSchema.index({ createdAt: -1 });
 
 productSchema.pre("save", function (next) {
   if (this.isModified("name") && !this.slug) {

@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const { authenticate } = require("../middleware/auth.middleware");
-const { authorize } = require("../middleware/role.middleware");
 const { validate } = require("../middleware/validate.middleware");
 const { createOrderSchema, orderQuerySchema } = require("../validators/order.validator");
 const {
@@ -9,9 +8,7 @@ const {
   getOrders,
   getOrderById,
   updateOrder,
-  updateOrderStatus,
   cancelOrder,
-  confirmOrder,
 } = require("../controllers/order.controller");
 const { updateOrderCoupon } = require("../controllers/order-coupon.controller");
 const { createCheckoutSession, verifyPayment } = require("../controllers/checkout.controller");
@@ -24,8 +21,6 @@ router.post("/:id/checkout", authenticate, createCheckoutSession);
 router.post("/:id/verify-payment", authenticate, verifyPayment);
 router.patch("/:id", authenticate, updateOrder);
 
-router.patch("/:id/status", authenticate, authorize("admin", "moderator"), updateOrderStatus);
-router.patch("/:id/confirm", authenticate, authorize("admin", "moderator"), confirmOrder);
 router.patch("/:id/cancel", authenticate, cancelOrder);
 router.patch("/:id/coupon", authenticate, updateOrderCoupon);
 

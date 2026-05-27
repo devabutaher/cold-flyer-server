@@ -28,6 +28,9 @@ const createPaymentIntent = catchAsync(async (req, res) => {
     const order = await Order.findById(orderId);
     if (!order) throw ApiError.notFound("Order not found");
     if (order.paymentStatus === "paid") throw ApiError.badRequest("Order already paid");
+    if (order.user && order.user.toString() !== req.user._id.toString() && req.user.role !== "admin") {
+      throw ApiError.forbidden("You can only pay for your own orders");
+    }
     entity = order;
     amount = order.total;
     entityType = "order";
@@ -35,6 +38,9 @@ const createPaymentIntent = catchAsync(async (req, res) => {
     const booking = await ServiceBooking.findById(bookingId);
     if (!booking) throw ApiError.notFound("Booking not found");
     if (booking.paymentStatus === "paid") throw ApiError.badRequest("Booking already paid");
+    if (booking.user && booking.user.toString() !== req.user._id.toString() && req.user.role !== "admin") {
+      throw ApiError.forbidden("You can only pay for your own bookings");
+    }
     entity = booking;
     amount = booking.total;
     entityType = "booking";

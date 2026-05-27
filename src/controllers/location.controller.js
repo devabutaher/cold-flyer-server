@@ -18,7 +18,8 @@ const getLocations = catchAsync(async (req, res) => {
   // Get all active technicians with their latest location
   const workers = await Technician.find({ isActive: true })
     .populate("user", "name email phone")
-    .select("user status currentLocation");
+    .select("user status currentLocation")
+    .sort({ createdAt: -1 });
 
   // Get today's location log entries
   const todayLog = await LocationLog.find({ date: today }).sort({ createdAt: -1 });

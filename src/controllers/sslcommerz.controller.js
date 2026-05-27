@@ -3,7 +3,7 @@ const Order = require("../models/Order");
 const Coupon = require("../models/Coupon");
 const ApiError = require("../utils/ApiError");
 const catchAsync = require("../utils/catchAsync");
-const { sendOrderConfirmationEmail } = require("../services/email.service");
+const { sendOrderConfirmationEmail, sendNewOrderAlertToAdmin } = require("../services/email.service");
 
 const SSLCommerzPayment = require("sslcommerz-lts");
 
@@ -148,6 +148,11 @@ const handleIpn = catchAsync(async (req, res) => {
       logger.error({ err, orderNumber: order.orderNumber }, "sendOrderConfirmationEmail failed"),
     );
 
+    // Alert super admin
+    sendNewOrderAlertToAdmin(order).catch((err) =>
+      logger.error({ err, orderNumber: order.orderNumber }, "sendNewOrderAlertToAdmin failed"),
+    );
+
     logger.info({ orderNumber: order.orderNumber }, "Order marked as paid via SSLCOMMERZ");
   } else if (status === "FAILED") {
     order.paymentStatus = "failed";
@@ -190,6 +195,11 @@ const handleReturn = catchAsync(async (req, res) => {
       await order.populate("user");
       sendOrderConfirmationEmail(order.user?.email, order.user?.name, order).catch((err) =>
         logger.error({ err, orderNumber: order.orderNumber }, "sendOrderConfirmationEmail failed"),
+      );
+
+      // Alert super admin
+      sendNewOrderAlertToAdmin(order).catch((err) =>
+        logger.error({ err, orderNumber: order.orderNumber }, "sendNewOrderAlertToAdmin failed"),
       );
     }
     res.redirect(`${FRONTEND_URL}/order/${order._id}?success=true&provider=sslcommerz`);
@@ -296,6 +306,11 @@ const verifySslcommerzPayment = catchAsync(async (req, res) => {
   await order.populate("user");
   sendOrderConfirmationEmail(order.user?.email, order.user?.name, order).catch((err) =>
     logger.error({ err, orderNumber: order.orderNumber }, "sendOrderConfirmationEmail failed"),
+  );
+
+  // Alert super admin
+  sendNewOrderAlertToAdmin(order).catch((err) =>
+    logger.error({ err, orderNumber: order.orderNumber }, "sendNewOrderAlertToAdmin failed"),
   );
 
   res.json({

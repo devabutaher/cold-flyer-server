@@ -48,10 +48,11 @@ const getTodayStatus = catchAsync(async (req, res) => {
 
   const workers = await Technician.find({ isActive: true })
     .populate("user", "name email phone avatar")
-    .select("user status nid bloodGroup emergencyContact salary");
+    .select("user status nid bloodGroup emergencyContact salary")
+    .sort({ createdAt: -1 });
 
   const today = todayStr();
-  const records = await Attendance.find({ date: today });
+  const records = await Attendance.find({ date: today }).sort({ createdAt: -1 });
 
   const statusMap = {};
   records.forEach((r) => {
