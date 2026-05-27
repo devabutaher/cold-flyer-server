@@ -8,11 +8,13 @@ const {
   getProducts,
   getProductBySlug,
   getProductById,
+  getFeaturedProducts,
   createProduct,
   updateProduct,
   deleteProduct,
 } = require("../controllers/product.controller");
 
+router.get("/featured", getFeaturedProducts);
 router.get("/slug/:slug", getProductBySlug);
 router.get("/", validate(productQuerySchema), getProducts);
 router.get("/:id", getProductById);

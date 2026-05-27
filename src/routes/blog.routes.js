@@ -4,13 +4,7 @@ const { authenticate } = require("../middleware/auth.middleware");
 const { authorize } = require("../middleware/role.middleware");
 const { validate } = require("../middleware/validate.middleware");
 const { blogSchema, blogQuerySchema } = require("../validators/blog.validator");
-const {
-  getBlogs,
-  getBlogBySlug,
-  createBlog,
-  updateBlog,
-  deleteBlog,
-} = require("../controllers/blog.controller");
+const { getBlogs, getBlogBySlug, createBlog, updateBlog, deleteBlog } = require("../controllers/blog.controller");
 
 // Public routes
 router.get("/slug/:slug", getBlogBySlug);

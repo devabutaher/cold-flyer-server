@@ -19,7 +19,13 @@ exports.getPublicStats = async (req, res, next) => {
       Order.countDocuments(),
 
       ServiceBooking.aggregate([
-        { $group: { _id: null, total: { $sum: 1 }, completed: { $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] } } } },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: 1 },
+            completed: { $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] } },
+          },
+        },
       ]),
 
       ServiceBooking.aggregate([
@@ -34,14 +40,17 @@ exports.getPublicStats = async (req, res, next) => {
         { $group: { _id: null, avgHours: { $avg: "$hours" } } },
       ]),
 
-      Product.find({ warranty: { $exists: true, $ne: "" } }).sort({ createdAt: -1 }).lean(),
+      Product.find({ warranty: { $exists: true, $ne: "" } })
+        .sort({ createdAt: -1 })
+        .lean(),
     ]);
 
     const totalBookings = bookings[0]?.total || 0;
     const completedBookings = bookings[0]?.completed || 0;
     const uptimeGuarantee = totalBookings > 0 ? Math.round((completedBookings / totalBookings) * 100) : 99;
     const responseTime = avgResponse[0]?.avgHours ? Math.round(avgResponse[0].avgHours) : 24;
-    const standardWarranty = products.length > 0 ? Math.max(...products.map((p) => extractMaxWarrantyYears(p.warranty))) : 10;
+    const standardWarranty =
+      products.length > 0 ? Math.max(...products.map((p) => extractMaxWarrantyYears(p.warranty))) : 10;
 
     res.json({
       success: true,

@@ -124,7 +124,12 @@ const createWorker = catchAsync(async (req, res) => {
     user: user._id,
     employeeId,
     specializations: specializations
-      ? (Array.isArray(specializations) ? specializations : specializations.split(",").map((s) => s.trim()).filter(Boolean))
+      ? Array.isArray(specializations)
+        ? specializations
+        : specializations
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
       : [],
     salary: salary || 0,
     hireDate: new Date(),

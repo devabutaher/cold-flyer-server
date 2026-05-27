@@ -101,10 +101,7 @@ const markAsRead = async (notificationId, userId) => {
 
 const markAllAsRead = async (userId) => {
   try {
-    return await Notification.updateMany(
-      { user: userId, isRead: false },
-      { isRead: true, readAt: new Date() },
-    );
+    return await Notification.updateMany({ user: userId, isRead: false }, { isRead: true, readAt: new Date() });
   } catch (error) {
     logger.error({ err: error }, "markAllAsRead failed");
     return { modifiedCount: 0 };

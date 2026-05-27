@@ -3,13 +3,7 @@ const router = express.Router();
 const { authenticate } = require("../middleware/auth.middleware");
 const { validate } = require("../middleware/validate.middleware");
 const { createOrderSchema, orderQuerySchema } = require("../validators/order.validator");
-const {
-  createOrder,
-  getOrders,
-  getOrderById,
-  updateOrder,
-  cancelOrder,
-} = require("../controllers/order.controller");
+const { createOrder, getOrders, getOrderById, updateOrder, cancelOrder } = require("../controllers/order.controller");
 const { updateOrderCoupon } = require("../controllers/order-coupon.controller");
 const { createCheckoutSession, verifyPayment } = require("../controllers/checkout.controller");
 
