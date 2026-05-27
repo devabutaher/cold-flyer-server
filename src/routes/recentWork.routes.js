@@ -22,9 +22,9 @@ router.get("/slug/:slug", getRecentWorkBySlug);
 router.get("/", validate(recentWorkQuerySchema), getRecentWorks);
 router.get("/:id", getRecentWorkById);
 
-// Admin routes
-router.post("/", authenticate, authorize("admin"), validate(recentWorkSchema), createRecentWork);
-router.patch("/:id", authenticate, authorize("admin"), updateRecentWork);
-router.delete("/:id", authenticate, authorize("admin"), deleteRecentWork);
+// Admin & Moderator routes
+router.post("/", authenticate, authorize("admin", "moderator"), validate(recentWorkSchema), createRecentWork);
+router.patch("/:id", authenticate, authorize("admin", "moderator"), updateRecentWork);
+router.delete("/:id", authenticate, authorize("admin", "moderator"), deleteRecentWork);
 
 module.exports = router;

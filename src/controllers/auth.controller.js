@@ -65,7 +65,7 @@ const register = catchAsync(async (req, res) => {
     throw ApiError.conflict("An account with this email already exists");
   }
 
-  const role = process.env.ADMIN_EMAIL && email === process.env.ADMIN_EMAIL ? "admin" : "user";
+  const role = process.env.ADMIN_EMAIL && email === process.env.ADMIN_EMAIL ? "admin" : "customer";
 
   const user = await User.create({
     name,
@@ -138,6 +138,12 @@ const googleLogin = catchAsync(async (req, res) => {
 
   let user = await User.findOne({ email });
 
+  if (user && user.role !== "customer") {
+    throw ApiError.forbidden(
+      `You cannot sign in with Google because your account role is ${user.role}. Please use email/password login instead.`,
+    );
+  }
+
   if (!user) {
     user = await User.create({
       name: name || email.split("@")[0],
@@ -145,7 +151,7 @@ const googleLogin = catchAsync(async (req, res) => {
       phone: "",
       password: sub,
       avatar: await uploadGoogleAvatar(picture),
-      role: "user",
+      role: "customer",
       provider: "google",
       isEmailVerified: true,
     });

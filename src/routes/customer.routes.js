@@ -12,7 +12,7 @@ const {
 } = require("../controllers/customer.controller");
 
 router.use(authenticate);
-router.use(authorize("admin"));
+router.use(authorize("admin", "moderator"));
 
 router.get("/", getCustomers);
 router.get("/:id", getCustomer);

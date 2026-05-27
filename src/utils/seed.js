@@ -54,7 +54,7 @@ async function seed() {
     console.log("✓ Cleared existing data\n");
 
     // ══════════════════════════════════════════════════════════════════
-    //  1. USERS (6)
+    //  1. USERS (7)
     // ══════════════════════════════════════════════════════════════════
     const users = await User.create([
       {
@@ -78,12 +78,33 @@ async function seed() {
         ],
       },
       {
+        name: "Moderator User",
+        userId: "USR-10007",
+        email: "mod@coldflyer.com",
+        phone: "01700000007",
+        password: "Mod@1234",
+        role: "moderator",
+        isEmailVerified: true,
+        gender: "male",
+        addresses: [
+          {
+            label: "Office",
+            isDefault: true,
+            fullName: "Moderator User",
+            phone: "01700000007",
+            district: "Dhaka",
+            thana: "Banani",
+            address: "45 Banani Road",
+          },
+        ],
+      },
+      {
         name: "Rafiq Hasan",
         userId: "USR-10002",
         email: "tech@coldflyer.com",
         phone: "01700000002",
         password: "Tech@1234",
-        role: "technician",
+        role: "worker",
         isEmailVerified: true,
         gender: "male",
       },
@@ -93,7 +114,7 @@ async function seed() {
         email: "fatima@example.com",
         phone: "01711112222",
         password: "User@1234",
-        role: "user",
+        role: "customer",
         isEmailVerified: true,
         gender: "female",
         addresses: [
@@ -114,7 +135,7 @@ async function seed() {
         email: "karim@example.com",
         phone: "01722223333",
         password: "User@1234",
-        role: "user",
+        role: "customer",
         isEmailVerified: true,
         gender: "male",
         addresses: [
@@ -135,7 +156,7 @@ async function seed() {
         email: "nusrat@example.com",
         phone: "01733334444",
         password: "User@1234",
-        role: "user",
+        role: "customer",
         isEmailVerified: true,
         gender: "female",
         addresses: [
@@ -156,7 +177,7 @@ async function seed() {
         email: "shahidul@example.com",
         phone: "01744445555",
         password: "User@1234",
-        role: "user",
+        role: "customer",
         isEmailVerified: true,
         gender: "male",
         addresses: [
@@ -175,8 +196,9 @@ async function seed() {
     console.log(`✓ Seeded ${users.length} users`);
 
     const adminUser = users[0];
-    const techUser = users[1];
-    const regularUsers = users.slice(2);
+    const moderatorUser = users[1];
+    const techUser = users[2];
+    const regularUsers = users.slice(3);
 
     // ══════════════════════════════════════════════════════════════════
     //  2. PRODUCTS (20)

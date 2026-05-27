@@ -5,7 +5,7 @@ const { authorize } = require("../middleware/role.middleware");
 const { getMessages, logMessage } = require("../controllers/message.controller");
 
 router.use(authenticate);
-router.use(authorize("admin"));
+router.use(authorize("admin", "moderator"));
 
 router.get("/", getMessages);
 router.post("/", logMessage);

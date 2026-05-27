@@ -183,10 +183,10 @@ const getOrders = catchAsync(async (req, res) => {
 
   const query = {};
 
-  // Admin can see all orders, customers see only their orders
-  if (req.user.role === "admin" || req.user.role === "superadmin") {
+  // Admin and moderator can see all orders, customers and workers see only their own
+  if (["admin", "moderator"].includes(req.user.role)) {
     // No filter - show all orders
-  } else if (req.user.role === "user" || req.user.role === "customer") {
+  } else {
     query.user = req.user._id;
   }
 
@@ -236,8 +236,8 @@ const getOrderById = catchAsync(async (req, res) => {
   const userId = req.user._id.toString();
   const orderUserId = order.user?._id?.toString() || order.user?.toString();
 
-  // Allow if: order has no user (guest order), OR user owns the order, OR user is admin
-  if (orderUserId && userId !== orderUserId && req.user.role !== "admin") {
+  // Allow if: order has no user (guest order), OR user owns the order, OR user is admin/moderator
+  if (orderUserId && userId !== orderUserId && !["admin", "moderator"].includes(req.user.role)) {
     throw ApiError.forbidden("You do not have permission to view this order");
   }
 
@@ -286,7 +286,7 @@ const updateOrder = catchAsync(async (req, res) => {
   const order = await Order.findById(id);
   if (!order) throw ApiError.notFound("Order not found");
 
-  if (order.user.toString() !== req.user._id.toString() && req.user.role !== "admin") {
+  if (order.user.toString() !== req.user._id.toString() && !["admin", "moderator"].includes(req.user.role)) {
     throw ApiError.forbidden("Not authorized");
   }
 
@@ -315,7 +315,7 @@ const cancelOrder = catchAsync(async (req, res) => {
     throw ApiError.notFound("Order not found");
   }
 
-  if (order.user.toString() !== req.user._id.toString() && req.user.role !== "admin") {
+  if (order.user.toString() !== req.user._id.toString() && !["admin", "moderator"].includes(req.user.role)) {
     throw ApiError.forbidden("Not authorized to cancel this order");
   }
 

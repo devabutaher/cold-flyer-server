@@ -8,7 +8,7 @@ const getDashboardStats = async () => {
     Order.aggregate([{ $match: { paymentStatus: "paid" } }, { $group: { _id: null, total: { $sum: "$total" } } }]),
     Order.countDocuments(),
     Product.countDocuments(),
-    User.countDocuments({ role: "user" }),
+    User.countDocuments({ role: "customer" }),
     Order.find().sort({ createdAt: -1 }).limit(10).populate("user", "name email"),
     Product.find({}).sort({ totalSold: -1 }).limit(10).select("name totalSold stock"),
   ]);

@@ -31,16 +31,16 @@ router.get("/slug/:slug", getServiceBySlug);
 router.post("/bookings", createBooking);
 router.get("/bookings", authenticate, getBookings);
 router.get("/bookings/:id", authenticate, getBookingById);
-router.patch("/bookings/:id", authenticate, authorize("admin"), updateBooking);
-router.patch("/bookings/:id/confirm", authenticate, authorize("admin"), confirmBooking);
-router.patch("/bookings/:id/schedule", authenticate, authorize("admin"), scheduleBooking);
-router.patch("/bookings/:id/start", authenticate, authorize("admin"), startService);
-router.patch("/bookings/:id/complete", authenticate, authorize("admin"), completeBooking);
+router.patch("/bookings/:id", authenticate, authorize("admin", "moderator"), updateBooking);
+router.patch("/bookings/:id/confirm", authenticate, authorize("admin", "moderator"), confirmBooking);
+router.patch("/bookings/:id/schedule", authenticate, authorize("admin", "moderator"), scheduleBooking);
+router.patch("/bookings/:id/start", authenticate, authorize("admin", "moderator", "worker"), startService);
+router.patch("/bookings/:id/complete", authenticate, authorize("admin", "moderator", "worker"), completeBooking);
 router.patch("/bookings/:id/cancel", authenticate, cancelBooking);
 
 router.get("/:id", getServiceById);
-router.post("/", authenticate, authorize("admin"), createService);
-router.patch("/:id", authenticate, authorize("admin"), updateService);
-router.delete("/:id", authenticate, authorize("admin"), deleteService);
+router.post("/", authenticate, authorize("admin", "moderator"), createService);
+router.patch("/:id", authenticate, authorize("admin", "moderator"), updateService);
+router.delete("/:id", authenticate, authorize("admin", "moderator"), deleteService);
 
 module.exports = router;

@@ -24,8 +24,8 @@ router.post("/:id/checkout", authenticate, createCheckoutSession);
 router.post("/:id/verify-payment", authenticate, verifyPayment);
 router.patch("/:id", authenticate, updateOrder);
 
-router.patch("/:id/status", authenticate, authorize("admin"), updateOrderStatus);
-router.patch("/:id/confirm", authenticate, authorize("admin"), confirmOrder);
+router.patch("/:id/status", authenticate, authorize("admin", "moderator"), updateOrderStatus);
+router.patch("/:id/confirm", authenticate, authorize("admin", "moderator"), confirmOrder);
 router.patch("/:id/cancel", authenticate, cancelOrder);
 router.patch("/:id/coupon", authenticate, updateOrderCoupon);
 

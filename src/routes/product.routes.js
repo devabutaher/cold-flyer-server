@@ -33,9 +33,9 @@ router.get("/:id", getProductById);
 router.get("/:id/reviews", getProductReviews);
 router.post("/:id/reviews", authenticate, addReview);
 
-router.post("/", authenticate, authorize("admin"), validate(productSchema), createProduct);
-router.patch("/:id", authenticate, authorize("admin"), updateProduct);
-router.delete("/:id", authenticate, authorize("admin"), deleteProduct);
-router.patch("/:id/stock", authenticate, authorize("admin"), updateStock);
+router.post("/", authenticate, authorize("admin", "moderator"), validate(productSchema), createProduct);
+router.patch("/:id", authenticate, authorize("admin", "moderator"), updateProduct);
+router.delete("/:id", authenticate, authorize("admin", "moderator"), deleteProduct);
+router.patch("/:id/stock", authenticate, authorize("admin", "moderator"), updateStock);
 
 module.exports = router;

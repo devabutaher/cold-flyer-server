@@ -106,11 +106,11 @@ const approveApplication = catchAsync(async (req, res) => {
       email: application.email.toLowerCase(),
       phone: application.phone,
       password: hashedPassword,
-      role: "technician",
+      role: "worker",
       isEmailVerified: false,
     });
   } else {
-    user.role = "technician";
+    user.role = "worker";
     await user.save();
   }
 

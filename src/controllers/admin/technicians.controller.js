@@ -116,7 +116,7 @@ const createWorker = catchAsync(async (req, res) => {
     throw ApiError.conflict("A user with this email already exists");
   }
 
-  const user = await User.create({ name, email, phone, password, role: "technician" });
+  const user = await User.create({ name, email, phone, password, role: "worker" });
 
   const employeeId = `CF-${String(Math.floor(10000 + Math.random() * 90000)).slice(0, 5)}`;
 

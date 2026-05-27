@@ -6,8 +6,8 @@ const { getReviews, moderateReview, deleteReview, markHelpful } = require("../co
 
 router.get("/", getReviews);
 
-router.patch("/:id/moderate", authenticate, authorize("admin"), moderateReview);
-router.delete("/:id", authenticate, authorize("admin"), deleteReview);
+router.patch("/:id/moderate", authenticate, authorize("admin", "moderator"), moderateReview);
+router.delete("/:id", authenticate, authorize("admin", "moderator"), deleteReview);
 router.post("/:id/helpful", authenticate, markHelpful);
 
 module.exports = router;

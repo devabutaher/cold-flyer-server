@@ -235,9 +235,11 @@ const getBookings = catchAsync(async (req, res) => {
 
   const query = {};
 
-  if (req.user.role === "user") {
+  if (req.user.role === "customer") {
     query.user = req.user._id;
-  } else if (["admin"].includes(req.user.role)) {
+  } else if (req.user.role === "worker") {
+    query.technician = req.user.technicianProfile;
+  } else if (["admin", "moderator"].includes(req.user.role)) {
     if (req.query.userId) query.user = req.query.userId;
   }
 
@@ -272,11 +274,15 @@ const getBookingById = catchAsync(async (req, res) => {
     throw ApiError.notFound("Booking not found");
   }
 
-  if (booking.user && booking.user.toString() !== req.user._id.toString() && req.user.role !== "admin") {
-    throw ApiError.forbidden("Not authorized to view this booking");
-  }
+  const isAdminOrModerator = ["admin", "moderator"].includes(req.user.role);
+  const isAssignedWorker =
+    req.user.role === "worker" &&
+    req.user.technicianProfile &&
+    booking.technician?.toString() === req.user.technicianProfile.toString();
 
-  if (!booking.user && req.user.role !== "admin") {
+  const isOwner = booking.user && booking.user.toString() === req.user._id.toString();
+
+  if (!isOwner && !isAdminOrModerator && !isAssignedWorker) {
     throw ApiError.forbidden("Not authorized to view this booking");
   }
 
@@ -349,6 +355,14 @@ const completeBooking = catchAsync(async (req, res) => {
     throw ApiError.notFound("Booking not found");
   }
 
+  // Workers can only complete bookings assigned to them
+  if (
+    req.user.role === "worker" &&
+    (!req.user.technicianProfile || booking.technician?.toString() !== req.user.technicianProfile.toString())
+  ) {
+    throw ApiError.forbidden("You can only complete services assigned to you");
+  }
+
   booking.diagnosis = diagnosis;
   booking.workDone = workDone;
   booking.partsUsed = partsUsed || [];
@@ -399,11 +413,13 @@ const cancelBooking = catchAsync(async (req, res) => {
     throw ApiError.notFound("Booking not found");
   }
 
+  const canCancel = ["admin", "moderator"].includes(req.user.role) || (booking.user && booking.user.toString() === req.user._id.toString());
+
   if (booking.user) {
-    if (booking.user.toString() !== req.user._id.toString() && req.user.role !== "admin") {
+    if (!canCancel) {
       throw ApiError.forbidden("Not authorized to cancel this booking");
     }
-  } else if (req.user.role !== "admin") {
+  } else if (!canCancel) {
     throw ApiError.forbidden("Not authorized to cancel this booking");
   }
 
@@ -481,6 +497,14 @@ const startService = catchAsync(async (req, res) => {
   const booking = await ServiceBooking.findById(id);
   if (!booking) {
     throw ApiError.notFound("Booking not found");
+  }
+
+  // Workers can only start bookings assigned to them
+  if (
+    req.user.role === "worker" &&
+    (!req.user.technicianProfile || booking.technician?.toString() !== req.user.technicianProfile.toString())
+  ) {
+    throw ApiError.forbidden("You can only start services assigned to you");
   }
 
   if (booking.status !== "scheduled") {

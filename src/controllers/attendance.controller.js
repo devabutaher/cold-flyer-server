@@ -14,6 +14,38 @@ function nowTime() {
 }
 
 const getTodayStatus = catchAsync(async (req, res) => {
+  // Workers see only their own status
+  if (req.user.role === "worker") {
+    const workerTech = await Technician.findById(req.user.technicianProfile);
+    if (!workerTech) {
+      return res.json({ success: true, data: { workers: [] } });
+    }
+
+    const today = todayStr();
+    const record = await Attendance.findOne({ worker: req.user.technicianProfile, date: today });
+
+    const result = [
+      {
+        _id: workerTech._id,
+        workerName: req.user.name || "Unknown",
+        phone: req.user.phone || "",
+        status: workerTech.status,
+        attendance: record
+          ? {
+              _id: record._id,
+              inTime: record.inTime,
+              outTime: record.outTime,
+              location: record.location,
+              task: record.task,
+              note: record.note,
+            }
+          : null,
+      },
+    ];
+
+    return res.json({ success: true, data: { workers: result } });
+  }
+
   const workers = await Technician.find({ isActive: true })
     .populate("user", "name email phone avatar")
     .select("user status nid bloodGroup emergencyContact salary");
@@ -62,7 +94,13 @@ const getAttendanceHistory = catchAsync(async (req, res) => {
     if (startDate) query.date.$gte = startDate;
     if (endDate) query.date.$lte = endDate;
   }
-  if (workerId) query.worker = workerId;
+
+  // Workers can only see their own history
+  if (req.user.role === "worker") {
+    query.worker = req.user.technicianProfile;
+  } else if (workerId) {
+    query.worker = workerId;
+  }
 
   const records = await Attendance.find(query)
     .sort({ date: -1, createdAt: -1 })
@@ -81,6 +119,11 @@ const getAttendanceHistory = catchAsync(async (req, res) => {
 const checkin = catchAsync(async (req, res) => {
   const { workerId, location, task, lat, lng } = req.body;
   if (!workerId) throw ApiError.badRequest("workerId is required");
+
+  // Workers can only check in for themselves
+  if (req.user.role === "worker" && req.user.technicianProfile?.toString() !== workerId) {
+    throw ApiError.forbidden("You can only check in for yourself");
+  }
 
   const technician = await Technician.findById(workerId).populate("user", "name");
   if (!technician) throw ApiError.notFound("Technician not found");
@@ -129,6 +172,11 @@ const checkin = catchAsync(async (req, res) => {
 const checkout = catchAsync(async (req, res) => {
   const { workerId, note } = req.body;
   if (!workerId) throw ApiError.badRequest("workerId is required");
+
+  // Workers can only check out for themselves
+  if (req.user.role === "worker" && req.user.technicianProfile?.toString() !== workerId) {
+    throw ApiError.forbidden("You can only check out for yourself");
+  }
 
   const today = todayStr();
   const record = await Attendance.findOne({ worker: workerId, date: today });

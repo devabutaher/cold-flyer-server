@@ -22,9 +22,9 @@ router.get("/slug/:slug", getBlogBySlug);
 router.get("/", validate(blogQuerySchema), getBlogs);
 router.get("/:id", getBlogById);
 
-// Admin routes
-router.post("/", authenticate, authorize("admin"), validate(blogSchema), createBlog);
-router.patch("/:id", authenticate, authorize("admin"), updateBlog);
-router.delete("/:id", authenticate, authorize("admin"), deleteBlog);
+// Admin & Moderator routes
+router.post("/", authenticate, authorize("admin", "moderator"), validate(blogSchema), createBlog);
+router.patch("/:id", authenticate, authorize("admin", "moderator"), updateBlog);
+router.delete("/:id", authenticate, authorize("admin", "moderator"), deleteBlog);
 
 module.exports = router;

@@ -34,43 +34,44 @@ const {
 const { getReport, getDuplicateCustomers } = require("../controllers/report.controller");
 
 router.use(authenticate);
-router.use(authorize("admin"));
 
-router.get("/dashboard", getDashboard);
-router.get("/analytics", getAnalytics);
+// Admin-only routes
+router.get("/dashboard", authorize("admin"), getDashboard);
+router.get("/analytics", authorize("admin"), getAnalytics);
 
-router.get("/users", getAllUsers);
-router.get("/users/:id", getUser);
-router.patch("/users/:id", updateUserRole);
-router.delete("/users/:id", deleteUser);
-router.post("/users", createUser);
+// Admin + Moderator routes
+router.get("/users", authorize("admin", "moderator"), getAllUsers);
+router.get("/users/:id", authorize("admin", "moderator"), getUser);
+router.patch("/users/:id", authorize("admin", "moderator"), updateUserRole);
+router.delete("/users/:id", authorize("admin"), deleteUser);
+router.post("/users", authorize("admin", "moderator"), createUser);
 
-router.get("/products", getAllProducts);
-router.get("/orders", getAllOrders);
-router.get("/services", getAllServices);
-router.get("/reviews", getAllReviews);
+router.get("/products", authorize("admin", "moderator"), getAllProducts);
+router.get("/orders", authorize("admin", "moderator"), getAllOrders);
+router.get("/services", authorize("admin", "moderator"), getAllServices);
+router.get("/reviews", authorize("admin", "moderator"), getAllReviews);
 
-router.post("/coupons", createCoupon);
-router.get("/coupons", getCoupons);
-router.patch("/coupons/:id", updateCoupon);
-router.delete("/coupons/:id", deleteCoupon);
-router.patch("/coupons/:id/toggle", toggleCouponStatus);
+router.post("/coupons", authorize("admin", "moderator"), createCoupon);
+router.get("/coupons", authorize("admin", "moderator"), getCoupons);
+router.patch("/coupons/:id", authorize("admin", "moderator"), updateCoupon);
+router.delete("/coupons/:id", authorize("admin", "moderator"), deleteCoupon);
+router.patch("/coupons/:id/toggle", authorize("admin", "moderator"), toggleCouponStatus);
 
-router.get("/technicians", getTechnicians);
-router.post("/technicians", createTechnician);
-router.get("/technicians/:id", getTechnician);
-router.patch("/technicians/:id", updateTechnician);
-router.delete("/technicians/:id", deleteTechnician);
-router.post("/workers", createWorker);
+router.get("/technicians", authorize("admin", "moderator"), getTechnicians);
+router.post("/technicians", authorize("admin", "moderator"), createTechnician);
+router.get("/technicians/:id", authorize("admin", "moderator"), getTechnician);
+router.patch("/technicians/:id", authorize("admin", "moderator"), updateTechnician);
+router.delete("/technicians/:id", authorize("admin"), deleteTechnician);
+router.post("/workers", authorize("admin", "moderator"), createWorker);
 
-router.get("/applications", getApplications);
-router.get("/applications/:id", getApplication);
-router.patch("/applications/:id/approve", approveApplication);
-router.patch("/applications/:id/reject", rejectApplication);
-router.delete("/applications/:id", deleteApplication);
+router.get("/applications", authorize("admin", "moderator"), getApplications);
+router.get("/applications/:id", authorize("admin", "moderator"), getApplication);
+router.patch("/applications/:id/approve", authorize("admin", "moderator"), approveApplication);
+router.patch("/applications/:id/reject", authorize("admin", "moderator"), rejectApplication);
+router.delete("/applications/:id", authorize("admin"), deleteApplication);
 
-// Reporting
-router.get("/report", getReport);
-router.get("/report/duplicates", getDuplicateCustomers);
+// Reporting (admin-only)
+router.get("/report", authorize("admin"), getReport);
+router.get("/report/duplicates", authorize("admin"), getDuplicateCustomers);
 
 module.exports = router;

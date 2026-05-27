@@ -2,11 +2,19 @@ const User = require("../../models/User");
 const ApiError = require("../../utils/ApiError");
 const catchAsync = require("../../utils/catchAsync");
 
+const SUPER_ADMIN = process.env.ADMIN_EMAIL;
+
 const getAllUsers = catchAsync(async (req, res) => {
   const { role, page = 1, limit = 20 } = req.query;
 
   const query = {};
-  if (role) query.role = role;
+
+  // Moderators can only see customers and workers
+  if (req.user.role === "moderator") {
+    query.role = { $in: ["customer", "worker"] };
+  } else if (role) {
+    query.role = role;
+  }
 
   const users = await User.find(query)
     .sort({ createdAt: -1 })
@@ -31,6 +39,11 @@ const getUser = catchAsync(async (req, res) => {
     throw ApiError.notFound("User not found");
   }
 
+  // Moderators cannot view admin or moderator accounts
+  if (req.user.role === "moderator" && ["admin", "moderator"].includes(user.role)) {
+    throw ApiError.notFound("User not found");
+  }
+
   res.json({ success: true, data: { user } });
 });
 
@@ -40,6 +53,16 @@ const updateUserRole = catchAsync(async (req, res) => {
 
   if (req.user._id.toString() === id) {
     throw ApiError.badRequest("You cannot change your own role");
+  }
+
+  // Moderators cannot assign admin or moderator roles
+  if (req.user.role === "moderator" && ["admin", "moderator"].includes(role)) {
+    throw ApiError.forbidden("Moderators cannot assign admin or moderator roles");
+  }
+
+  // Only SUPER_ADMIN can assign the admin role
+  if (role === "admin" && req.user.email !== SUPER_ADMIN) {
+    throw ApiError.forbidden("Only the super admin can assign the admin role");
   }
 
   const user = await User.findByIdAndUpdate(id, { role }, { new: true, runValidators: true });
@@ -56,6 +79,11 @@ const deleteUser = catchAsync(async (req, res) => {
 
   if (req.user._id.toString() === id) {
     throw ApiError.badRequest("You cannot delete your own account");
+  }
+
+  // Moderators cannot delete users
+  if (req.user.role === "moderator") {
+    throw ApiError.forbidden("Moderators cannot delete users");
   }
 
   const user = await User.findById(id);
@@ -84,7 +112,23 @@ const createUser = catchAsync(async (req, res) => {
     throw ApiError.conflict("A user with this email already exists");
   }
 
-  const user = await User.create({ name, email, phone, password, role: role || "user" });
+  // Moderators cannot create admin or moderator users
+  if (req.user.role === "moderator" && ["admin", "moderator"].includes(role)) {
+    throw ApiError.forbidden("Moderators cannot create admin or moderator users");
+  }
+
+  // Only SUPER_ADMIN can create admin users
+  if (role === "admin" && req.user.email !== SUPER_ADMIN) {
+    throw ApiError.forbidden("Only the super admin can create admin users");
+  }
+
+  const user = await User.create({
+    name,
+    email,
+    phone,
+    password,
+    role: role || "customer",
+  });
 
   res.status(201).json({
     success: true,
