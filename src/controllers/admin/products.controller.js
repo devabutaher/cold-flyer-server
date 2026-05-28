@@ -8,7 +8,8 @@ const getAllProducts = catchAsync(async (req, res) => {
     .populate("createdBy", "name")
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
-    .limit(parseInt(limit));
+    .limit(parseInt(limit))
+    .lean();
 
   const total = await Product.countDocuments();
 

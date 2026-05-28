@@ -29,7 +29,8 @@ const getServices = catchAsync(async (req, res) => {
   const services = await Service.find(query)
     .sort(sort)
     .skip((page - 1) * limit)
-    .limit(parseInt(limit));
+    .limit(parseInt(limit))
+    .lean();
 
   const total = await Service.countDocuments(query);
 
@@ -44,11 +45,11 @@ const getServiceBySlug = catchAsync(async (req, res) => {
   const { slug } = req.params;
 
   // Try to find by slug first
-  let service = await Service.findOne({ slug });
+  let service = await Service.findOne({ slug }).lean();
 
   // If not found and looks like an ObjectId, try by ID
   if (!service && slug.match(/^[0-9a-f]{24}$/)) {
-    service = await Service.findById(slug);
+    service = await Service.findById(slug).lean();
   }
 
   if (!service) {
@@ -65,7 +66,7 @@ const getServiceById = catchAsync(async (req, res) => {
   const { id } = req.params;
   logger.debug({ serviceId: id }, "getServiceById");
 
-  const service = await Service.findById(id);
+  const service = await Service.findById(id).lean();
   logger.debug({ serviceId: id, found: !!service }, "getServiceById result");
 
   if (!service) {
@@ -79,7 +80,7 @@ const getServiceById = catchAsync(async (req, res) => {
 });
 
 const getFeaturedServices = catchAsync(async (req, res) => {
-  const services = await Service.find({ isFeatured: true }).sort({ createdAt: -1 }).limit(10);
+  const services = await Service.find({ isFeatured: true }).sort({ createdAt: -1 }).limit(10).lean();
 
   res.json({
     success: true,
@@ -131,7 +132,7 @@ const createBooking = catchAsync(async (req, res) => {
     customerEmail,
   } = req.body;
 
-  const serviceData = await Service.findById(service);
+  const serviceData = await Service.findById(service).lean();
   if (!serviceData) {
     throw ApiError.notFound("Service not found");
   }
@@ -259,7 +260,8 @@ const getBookings = catchAsync(async (req, res) => {
     .populate({ path: "technician", select: "employeeId specializations", populate: { path: "user", select: "name" } })
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
-    .limit(parseInt(limit));
+    .limit(parseInt(limit))
+    .lean();
 
   const total = await ServiceBooking.countDocuments(query);
 
@@ -276,7 +278,8 @@ const getBookingById = catchAsync(async (req, res) => {
   const booking = await ServiceBooking.findById(id)
     .populate("user", "name email phone")
     .populate("service")
-    .populate("technician", "user specializations");
+    .populate("technician", "user specializations")
+    .lean();
 
   if (!booking) {
     throw ApiError.notFound("Booking not found");
@@ -286,9 +289,9 @@ const getBookingById = catchAsync(async (req, res) => {
   const isAssignedWorker =
     req.user.role === "worker" &&
     req.user.technicianProfile &&
-    booking.technician?.toString() === req.user.technicianProfile.toString();
+    booking.technician?._id?.toString() === req.user.technicianProfile.toString();
 
-  const isOwner = booking.user && booking.user.toString() === req.user._id.toString();
+  const isOwner = booking.user && booking.user._id?.toString() === req.user._id.toString();
 
   if (!isOwner && !isAdminOrModerator && !isAssignedWorker) {
     throw ApiError.forbidden("Not authorized to view this booking");

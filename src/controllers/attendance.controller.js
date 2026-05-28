@@ -16,13 +16,13 @@ function nowTime() {
 const getTodayStatus = catchAsync(async (req, res) => {
   // Workers see only their own status
   if (req.user.role === "worker") {
-    const workerTech = await Technician.findById(req.user.technicianProfile);
+    const workerTech = await Technician.findById(req.user.technicianProfile).lean();
     if (!workerTech) {
       return res.json({ success: true, data: { workers: [] } });
     }
 
     const today = todayStr();
-    const record = await Attendance.findOne({ worker: req.user.technicianProfile, date: today });
+    const record = await Attendance.findOne({ worker: req.user.technicianProfile, date: today }).lean();
 
     const result = [
       {
@@ -49,10 +49,11 @@ const getTodayStatus = catchAsync(async (req, res) => {
   const workers = await Technician.find({ isActive: true })
     .populate("user", "name email phone avatar")
     .select("user status nid bloodGroup emergencyContact salary")
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .lean();
 
   const today = todayStr();
-  const records = await Attendance.find({ date: today }).sort({ createdAt: -1 });
+  const records = await Attendance.find({ date: today }).sort({ createdAt: -1 }).lean();
 
   const statusMap = {};
   records.forEach((r) => {
@@ -106,7 +107,8 @@ const getAttendanceHistory = catchAsync(async (req, res) => {
   const records = await Attendance.find(query)
     .sort({ date: -1, createdAt: -1 })
     .skip((page - 1) * limit)
-    .limit(parseInt(limit));
+    .limit(parseInt(limit))
+    .lean();
 
   const total = await Attendance.countDocuments(query);
 
@@ -130,7 +132,7 @@ const checkin = catchAsync(async (req, res) => {
   if (!technician) throw ApiError.notFound("Technician not found");
 
   const today = todayStr();
-  const existing = await Attendance.findOne({ worker: workerId, date: today });
+  const existing = await Attendance.findOne({ worker: workerId, date: today }).lean();
   if (existing) {
     throw ApiError.conflict("Already checked in today");
   }

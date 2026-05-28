@@ -15,7 +15,8 @@ const getCustomers = catchAsync(async (req, res) => {
   const customers = await Customer.find(query)
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
-    .limit(parseInt(limit));
+    .limit(parseInt(limit))
+    .lean();
 
   const total = await Customer.countDocuments(query);
 
@@ -32,7 +33,7 @@ const getCustomers = catchAsync(async (req, res) => {
 });
 
 const getCustomer = catchAsync(async (req, res) => {
-  const customer = await Customer.findById(req.params.id);
+  const customer = await Customer.findById(req.params.id).lean();
   if (!customer) throw ApiError.notFound("Customer not found");
   res.json({ success: true, data: { customer } });
 });

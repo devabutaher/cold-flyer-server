@@ -18,7 +18,8 @@ const getReviews = catchAsync(async (req, res) => {
     .populate("user", "name avatar")
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
-    .limit(parseInt(limit));
+    .limit(parseInt(limit))
+    .lean();
 
   const total = await Review.countDocuments(query);
 
@@ -69,8 +70,8 @@ const deleteReview = catchAsync(async (req, res) => {
   await review.deleteOne();
 
   if (review.product) {
-    const reviews = await Review.find({ product: review.product, status: "approved" });
-    const avgRating = reviews.length ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;
+    const reviews = await Review.find({ product: review.product, status: "approved" }).lean();
+    const avgRating = reviews.length ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;  
     await Product.findByIdAndUpdate(review.product, {
       rating: Math.round(avgRating * 10) / 10,
       reviewCount: reviews.length,

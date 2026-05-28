@@ -1,15 +1,12 @@
 const Order = require("../models/Order");
 const Product = require("../models/Product");
-const Cart = require("../models/Cart");
 const Coupon = require("../models/Coupon");
 const ApiError = require("../utils/ApiError");
 const logger = require("../utils/logger");
 const { validateCouponScope, computeCouponDiscount } = require("../utils/coupon-scope");
 const catchAsync = require("../utils/catchAsync");
-const { createOrderNotification } = require("../services/notification.service");
 const {
   sendOrderConfirmationEmail,
-  sendOrderStatusUpdateEmail,
   sendNewOrderAlertToAdmin,
 } = require("../services/email.service");
 
@@ -25,14 +22,7 @@ const createOrder = catchAsync(async (req, res) => {
     couponCode,
   } = req.body;
 
-  const cart = await Cart.findOne({ user: req.user._id }).populate("items.product");
-
-  const itemsToProcess =
-    requestItems && requestItems.length > 0
-      ? requestItems
-      : cart && cart.items && cart.items.length > 0
-        ? cart.items
-        : [];
+  const itemsToProcess = (requestItems && requestItems.length > 0) ? requestItems : [];
 
   if (!itemsToProcess || itemsToProcess.length === 0) {
     throw ApiError.badRequest("Cart is empty");
@@ -160,14 +150,6 @@ const createOrder = catchAsync(async (req, res) => {
     source: "website",
   });
 
-  if (cart && cart._id) {
-    await Cart.findByIdAndUpdate(cart._id, {
-      items: [],
-      subtotal: 0,
-      itemCount: 0,
-    });
-  }
-
   req.user.orders.push(order._id);
   await req.user.save();
 
@@ -212,7 +194,8 @@ const getOrders = catchAsync(async (req, res) => {
     .populate("user", "name email phone")
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
-    .limit(parseInt(limit));
+    .limit(parseInt(limit))
+    .lean();
 
   const total = await Order.countDocuments(query);
 
@@ -231,7 +214,10 @@ const getOrders = catchAsync(async (req, res) => {
 const getOrderById = catchAsync(async (req, res) => {
   const { id } = req.params;
 
-  const order = await Order.findById(id).populate("user", "name email phone").populate("items.product");
+  const order = await Order.findById(id)
+    .populate("user", "name email phone")
+    .populate("items.product")
+    .lean();
 
   if (!order) {
     throw ApiError.notFound("Order not found");
@@ -256,53 +242,6 @@ const getOrderById = catchAsync(async (req, res) => {
 
   res.json({
     success: true,
-    data: { order },
-  });
-});
-
-const updateOrderStatus = catchAsync(async (req, res) => {
-  const { id } = req.params;
-  const { status, note } = req.body;
-
-  const order = await Order.findById(id);
-  if (!order) {
-    throw ApiError.notFound("Order not found");
-  }
-
-  order.status = status;
-  order.statusHistory.push({
-    status,
-    timestamp: new Date(),
-    note,
-    updatedBy: req.user._id,
-  });
-
-  if (status === "delivered") {
-    order.deliveredAt = new Date();
-  }
-
-  await order.save();
-
-  await createOrderNotification(order.user, order, status);
-
-  // Send status update email to customer
-  if (order.user) {
-    const User = require("../models/User");
-    const user = await User.findById(order.user).select("name email");
-    if (user && user.email) {
-      // Determine previous status from history
-      const history = order.statusHistory || [];
-      const prevEntry = history.length >= 2 ? history[history.length - 2] : null;
-      const previousStatus = prevEntry ? prevEntry.status : undefined;
-      sendOrderStatusUpdateEmail(user.email, user.name, order, previousStatus).catch((err) =>
-        logger.error({ err, orderId: order._id }, "sendOrderStatusUpdateEmail failed"),
-      );
-    }
-  }
-
-  res.json({
-    success: true,
-    message: "Order status updated",
     data: { order },
   });
 });
@@ -407,7 +346,6 @@ module.exports = {
   getOrders,
   getOrderById,
   updateOrder,
-  updateOrderStatus,
   cancelOrder,
   confirmOrder,
 };

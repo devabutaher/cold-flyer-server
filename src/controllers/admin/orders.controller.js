@@ -12,7 +12,8 @@ const getAllOrders = catchAsync(async (req, res) => {
     .populate("user", "name email")
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
-    .limit(parseInt(limit));
+    .limit(parseInt(limit))
+    .lean();
 
   const total = await Order.countDocuments(query);
 

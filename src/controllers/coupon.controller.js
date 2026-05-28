@@ -10,7 +10,8 @@ const getFeaturedCoupon = catchAsync(async (req, res) => {
     validUntil: { $gte: new Date() },
   })
     .sort({ discountValue: -1, createdAt: -1 })
-    .select("code description discountType discountValue minOrderValue validUntil");
+    .select("code description discountType discountValue minOrderValue validUntil")
+    .lean();
 
   if (!coupon) {
     return res.json({ success: true, data: null });
@@ -27,9 +28,11 @@ const lookupCoupon = catchAsync(async (req, res) => {
     isActive: true,
     validFrom: { $lte: new Date() },
     validUntil: { $gte: new Date() },
-  }).select(
-    "code description discountType discountValue maxDiscount minOrderValue validUntil applicableTo productIds serviceIds categoryIds brandIds firstOrderOnly minItemCount excludedProductIds excludedCategoryIds",
-  );
+  })
+    .select(
+      "code description discountType discountValue maxDiscount minOrderValue validUntil applicableTo productIds serviceIds categoryIds brandIds firstOrderOnly minItemCount excludedProductIds excludedCategoryIds",
+    )
+    .lean();
 
   if (!coupon) {
     return res.status(404).json({ success: false, message: "Invalid or expired coupon" });
@@ -53,7 +56,7 @@ const getActiveCoupons = catchAsync(async (req, res) => {
 
   if (limit) query.limit(parseInt(limit, 10));
 
-  const coupons = await query;
+  const coupons = await query.lean();
 
   res.json({ success: true, data: { coupons } });
 });
@@ -71,7 +74,8 @@ const autoApplyCoupon = catchAsync(async (req, res) => {
     .sort({ discountValue: -1, createdAt: -1 })
     .select(
       "code description discountType discountValue maxDiscount minOrderValue minItemCount applicableTo productIds serviceIds categoryIds brandIds firstOrderOnly excludedProductIds excludedCategoryIds",
-    );
+    )
+    .lean();
 
   for (const coupon of coupons) {
     if (coupon.minOrderValue > 0 && subtotal < coupon.minOrderValue) continue;

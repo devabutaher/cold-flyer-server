@@ -21,7 +21,8 @@ const getBlogs = catchAsync(async (req, res) => {
     .populate("author", "name avatar")
     .sort(sort)
     .skip((page - 1) * limit)
-    .limit(parseInt(limit));
+    .limit(parseInt(limit))
+    .lean();
 
   const total = await Blog.countDocuments(query);
 
@@ -54,7 +55,7 @@ const getBlogBySlug = catchAsync(async (req, res) => {
 const getBlogById = catchAsync(async (req, res) => {
   const { id } = req.params;
 
-  const blog = await Blog.findById(id).populate("author", "name avatar");
+  const blog = await Blog.findById(id).populate("author", "name avatar").lean();
 
   if (!blog) {
     throw ApiError.notFound("Blog not found");
@@ -72,7 +73,8 @@ const getFeaturedBlogs = catchAsync(async (req, res) => {
   const blogs = await Blog.find({ featured: true })
     .populate("author", "name avatar")
     .sort({ createdAt: -1 })
-    .limit(parseInt(limit));
+    .limit(parseInt(limit))
+    .lean();
 
   res.json({
     success: true,

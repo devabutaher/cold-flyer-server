@@ -20,7 +20,8 @@ const getAllUsers = catchAsync(async (req, res) => {
   const users = await User.find(query)
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
-    .limit(parseInt(limit));
+    .limit(parseInt(limit))
+    .lean();
 
   const total = await User.countDocuments(query);
 
@@ -34,7 +35,7 @@ const getAllUsers = catchAsync(async (req, res) => {
 const getUser = catchAsync(async (req, res) => {
   const { id } = req.params;
 
-  const user = await User.findById(id).populate("technicianProfile");
+  const user = await User.findById(id).populate("technicianProfile").lean();
 
   if (!user) {
     throw ApiError.notFound("User not found");
@@ -87,7 +88,7 @@ const deleteUser = catchAsync(async (req, res) => {
     throw ApiError.forbidden("Moderators cannot delete users");
   }
 
-  const user = await User.findById(id);
+  const user = await User.findById(id).lean();
   if (!user) {
     throw ApiError.notFound("User not found");
   }
@@ -108,7 +109,7 @@ const createUser = catchAsync(async (req, res) => {
     throw ApiError.badRequest("Name, email, and password are required");
   }
 
-  const existing = await User.findOne({ email });
+  const existing = await User.findOne({ email }).lean();
   if (existing) {
     throw ApiError.conflict("A user with this email already exists");
   }

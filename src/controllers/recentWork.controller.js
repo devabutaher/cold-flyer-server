@@ -21,7 +21,8 @@ const getRecentWorks = catchAsync(async (req, res) => {
     .populate("author", "name avatar")
     .sort(sort)
     .skip((page - 1) * limit)
-    .limit(parseInt(limit));
+    .limit(parseInt(limit))
+    .lean();
 
   const total = await RecentWork.countDocuments(query);
 
@@ -54,7 +55,7 @@ const getRecentWorkBySlug = catchAsync(async (req, res) => {
 const getRecentWorkById = catchAsync(async (req, res) => {
   const { id } = req.params;
 
-  const recentWork = await RecentWork.findById(id).populate("author", "name avatar");
+  const recentWork = await RecentWork.findById(id).populate("author", "name avatar").lean();
 
   if (!recentWork) {
     throw ApiError.notFound("Recent work not found");
@@ -72,7 +73,8 @@ const getFeaturedRecentWorks = catchAsync(async (req, res) => {
   const recentWorks = await RecentWork.find({ featured: true })
     .populate("author", "name avatar")
     .sort({ createdAt: -1 })
-    .limit(parseInt(limit));
+    .limit(parseInt(limit))
+    .lean();
 
   res.json({
     success: true,

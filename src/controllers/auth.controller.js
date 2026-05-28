@@ -1,5 +1,4 @@
 const User = require("../models/User");
-const Cart = require("../models/Cart");
 const ApiError = require("../utils/ApiError");
 const catchAsync = require("../utils/catchAsync");
 const { generateAccessToken, verifyAccessToken, parseDurationToMs } = require("../utils/generateToken");
@@ -74,10 +73,6 @@ const register = catchAsync(async (req, res) => {
     phone: phone || "",
     role,
   });
-
-  const cart = await Cart.create({ user: user._id, items: [] });
-  user.cart = cart._id;
-  await user.save();
 
   sendUserResponse(res, user, 201);
 });
@@ -155,10 +150,6 @@ const googleLogin = catchAsync(async (req, res) => {
       provider: "google",
       isEmailVerified: true,
     });
-
-    const cart = await Cart.create({ user: user._id, items: [] });
-    user.cart = cart._id;
-    await user.save();
   }
 
   if (!user.isActive) {
@@ -211,7 +202,7 @@ const changePassword = catchAsync(async (req, res) => {
 });
 
 const getMe = catchAsync(async (req, res) => {
-  const user = await User.findById(req.user._id).populate("cart").populate("wishlist");
+  const user = await User.findById(req.user._id).populate("wishlist");
 
   res.json({
     success: true,

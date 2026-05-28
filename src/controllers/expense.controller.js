@@ -16,7 +16,8 @@ const getExpenses = catchAsync(async (req, res) => {
   const expenses = await Expense.find(query)
     .sort({ date: -1, createdAt: -1 })
     .skip((page - 1) * limit)
-    .limit(parseInt(limit));
+    .limit(parseInt(limit))
+    .lean();
 
   const total = await Expense.countDocuments(query);
   const totalAmount = await Expense.aggregate([
@@ -38,7 +39,7 @@ const getExpenses = catchAsync(async (req, res) => {
 });
 
 const getExpense = catchAsync(async (req, res) => {
-  const expense = await Expense.findById(req.params.id);
+  const expense = await Expense.findById(req.params.id).lean();
   if (!expense) throw ApiError.notFound("Expense not found");
   res.json({ success: true, data: { expense } });
 });

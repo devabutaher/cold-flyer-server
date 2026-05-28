@@ -10,7 +10,8 @@ const getMessages = catchAsync(async (req, res) => {
   const messages = await MessageLog.find(query)
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
-    .limit(parseInt(limit));
+    .limit(parseInt(limit))
+    .lean();
 
   const total = await MessageLog.countDocuments(query);
 

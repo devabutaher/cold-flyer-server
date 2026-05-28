@@ -1,4 +1,5 @@
 const express = require("express");
+const rateLimit = require("express-rate-limit");
 const router = express.Router();
 const { authenticate } = require("../middleware/auth.middleware");
 const { authorize } = require("../middleware/role.middleware");
@@ -28,7 +29,12 @@ router.get("/", validate(serviceQuerySchema), getServices);
 router.get("/slug/:slug", getServiceBySlug);
 
 // Booking CRUD must be BEFORE /:id routes to avoid conflict
-router.post("/bookings", createBooking);
+const bookingLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { success: false, message: "Too many bookings, please try again later" },
+});
+router.post("/bookings", bookingLimiter, createBooking);
 router.get("/bookings", authenticate, getBookings);
 router.get("/bookings/:id", authenticate, getBookingById);
 router.patch("/bookings/:id", authenticate, authorize("admin", "moderator"), updateBooking);

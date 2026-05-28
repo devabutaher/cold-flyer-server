@@ -16,7 +16,8 @@ const getActivityLogs = catchAsync(async (req, res) => {
   const logs = await ActivityLog.find(query)
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
-    .limit(parseInt(limit));
+    .limit(parseInt(limit))
+    .lean();
 
   const total = await ActivityLog.countDocuments(query);
 
