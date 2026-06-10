@@ -3,7 +3,7 @@ const logger = require("./utils/logger");
 const app = require("./app");
 const connectDB = require("./config/db");
 
-const REQUIRED_ENV = ["MONGODB_URI", "JWT_SECRET"];
+const REQUIRED_ENV = ["MONGODB_URI", "JWT_SECRET", "FRONTEND_URL"];
 
 const missing = REQUIRED_ENV.filter((key) => !process.env[key]);
 if (missing.length > 0) {

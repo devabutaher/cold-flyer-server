@@ -75,8 +75,10 @@ app.use(
           "'self'",
           "https://js.stripe.com",
           "https://accounts.google.com",
+          "https://www.googletagmanager.com",
           "https://sandbox.sslcommerz.com",
           "https://sslcommerz.com",
+          "https://secure.sslcommerz.com",
         ],
         frameSrc: [
           "'self'",
@@ -84,8 +86,14 @@ app.use(
           "https://accounts.google.com",
           "https://sandbox.sslcommerz.com",
           "https://sslcommerz.com",
+          "https://secure.sslcommerz.com",
         ],
-        connectSrc: ["'self'"],
+        connectSrc: [
+          "'self'",
+          "https://api.stripe.com",
+          "https://www.google-analytics.com",
+          "https://www.googletagmanager.com",
+        ],
         imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://*.unsplash.com"],
         styleSrc: ["'self'", "'unsafe-inline'"],
       },
@@ -99,9 +107,18 @@ app.use(
 app.use(compression());
 
 // ── CORS ───────────────────────────────────────────────
+const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:3000")
+  .split(",")
+  .map((s) => s.trim());
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.some((o) => origin.startsWith(o))) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   }),
 );

@@ -410,7 +410,7 @@ async function seed() {
         stock: 75,
         rating: 4.1,
         reviewCount: 23,
-        features: ["Silent Operation", "Ball Bearings", "Thermal Protection"],
+        features: ["Silent Operation", "Ball Bearings", "HVAC Protection"],
         warranty: "6 Months",
         specs: { type: "Indoor Fan Motor", speed: "3 Speed", voltage: "220V" },
       },
@@ -506,7 +506,7 @@ async function seed() {
         brand: "Danfoss",
         price: 1800,
         description:
-          "Thermal expansion valve for precise refrigerant flow control. Compatible with R32 and R410A systems.",
+          "HVAC expansion valve for precise refrigerant flow control. Compatible with R32 and R410A systems.",
         stock: 45,
         rating: 4.3,
         reviewCount: 27,
@@ -652,7 +652,7 @@ async function seed() {
         slug: "ac-health-checkup",
         category: "maintenance",
         description:
-          "Comprehensive AC inspection covering all components: compressor, fan motor, PCB, capacitor, gas pressure, and thermals. Includes detailed report.",
+          "Comprehensive AC inspection covering all components: compressor, fan motor, PCB, capacitor, gas pressure, and HVACs. Includes detailed report.",
         serviceType: "inspection",
         basePrice: 800,
         priceType: "fixed",
