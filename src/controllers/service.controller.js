@@ -5,7 +5,7 @@ const catchAsync = require("../utils/catchAsync");
 const logger = require("../utils/logger");
 const { createServiceNotification } = require("../services/notification.service");
 const { sendBookingConfirmationEmail, sendNewBookingAlertToAdmin } = require("../services/email.service");
-const Technician = require("../models/Technician");
+const Worker = require("../models/Worker");
 const Customer = require("../models/Customer");
 
 const getServices = catchAsync(async (req, res) => {
@@ -247,7 +247,7 @@ const getBookings = catchAsync(async (req, res) => {
   if (req.user.role === "customer") {
     query.user = req.user._id;
   } else if (req.user.role === "worker") {
-    query.technician = req.user.technicianProfile;
+    query.worker = req.user.workerProfile;
   } else if (["admin", "moderator"].includes(req.user.role)) {
     if (req.query.userId) query.user = req.query.userId;
   }
@@ -257,7 +257,7 @@ const getBookings = catchAsync(async (req, res) => {
   const bookings = await ServiceBooking.find(query)
     .populate("user", "name email phone")
     .populate("service", "name category")
-    .populate({ path: "technician", select: "employeeId specializations", populate: { path: "user", select: "name" } })
+    .populate({ path: "worker", select: "employeeId specializations", populate: { path: "user", select: "name" } })
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(parseInt(limit))
@@ -278,7 +278,7 @@ const getBookingById = catchAsync(async (req, res) => {
   const booking = await ServiceBooking.findById(id)
     .populate("user", "name email phone")
     .populate("service")
-    .populate("technician", "user specializations")
+    .populate("worker", "user specializations")
     .lean();
 
   if (!booking) {
@@ -288,8 +288,8 @@ const getBookingById = catchAsync(async (req, res) => {
   const isAdminOrModerator = ["admin", "moderator"].includes(req.user.role);
   const isAssignedWorker =
     req.user.role === "worker" &&
-    req.user.technicianProfile &&
-    booking.technician?._id?.toString() === req.user.technicianProfile.toString();
+    req.user.workerProfile &&
+    booking.worker?._id?.toString() === req.user.workerProfile.toString();
 
   const isOwner = booking.user && booking.user._id?.toString() === req.user._id.toString();
 
@@ -307,7 +307,7 @@ const ALLOWED_BOOKING_FIELDS = [
   "scheduledDate",
   "scheduledTime",
   "status",
-  "technician",
+  "worker",
   "notes",
   "internalNotes",
   "diagnosis",
@@ -351,7 +351,7 @@ const updateBooking = catchAsync(async (req, res) => {
 
 const scheduleBooking = catchAsync(async (req, res) => {
   const { id } = req.params;
-  const { scheduledDate, scheduledTime, technician } = req.body;
+  const { scheduledDate, scheduledTime, worker } = req.body;
 
   const booking = await ServiceBooking.findById(id);
   if (!booking) {
@@ -360,7 +360,7 @@ const scheduleBooking = catchAsync(async (req, res) => {
 
   booking.scheduledDate = scheduledDate;
   booking.scheduledTime = scheduledTime;
-  if (technician) booking.technician = technician;
+  if (worker) booking.worker = worker;
   booking.status = "scheduled";
   await booking.save();
 
@@ -411,7 +411,7 @@ const completeBooking = catchAsync(async (req, res) => {
   // Workers can only complete bookings assigned to them
   if (
     req.user.role === "worker" &&
-    (!req.user.technicianProfile || booking.technician?.toString() !== req.user.technicianProfile.toString())
+    (!req.user.workerProfile || booking.worker?.toString() !== req.user.workerProfile.toString())
   ) {
     throw ApiError.forbidden("You can only complete services assigned to you");
   }
@@ -432,8 +432,8 @@ const completeBooking = catchAsync(async (req, res) => {
 
   await booking.save();
 
-  if (booking.technician) {
-    await Technician.findByIdAndUpdate(booking.technician, {
+  if (booking.worker) {
+    await Worker.findByIdAndUpdate(booking.worker, {
       $inc: { completedJobs: 1 },
     });
   }
@@ -584,7 +584,7 @@ const startService = catchAsync(async (req, res) => {
   // Workers can only start bookings assigned to them
   if (
     req.user.role === "worker" &&
-    (!req.user.technicianProfile || booking.technician?.toString() !== req.user.technicianProfile.toString())
+    (!req.user.workerProfile || booking.worker?.toString() !== req.user.workerProfile.toString())
   ) {
     throw ApiError.forbidden("You can only start services assigned to you");
   }

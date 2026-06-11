@@ -26,7 +26,7 @@ const vehicleSchema = new mongoose.Schema({
   licensePlate: String,
 });
 
-const technicianSchema = new mongoose.Schema(
+const workerSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
@@ -105,7 +105,7 @@ const technicianSchema = new mongoose.Schema(
   },
 );
 
-technicianSchema.index({ user: 1 });
-technicianSchema.index({ status: 1 });
+workerSchema.index({ user: 1 });
+workerSchema.index({ status: 1 });
 
-module.exports = mongoose.model("Technician", technicianSchema);
+module.exports = mongoose.model("Worker", workerSchema);

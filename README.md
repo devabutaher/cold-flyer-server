@@ -77,7 +77,7 @@ Base path: `/api`. All endpoints are proxied from the Next.js frontend.
 | **Payments** | Stripe intent + webhook, SSLCOMMERZ init/return/IPN/verify | Mixed |
 | **Users** | Full CRUD `/api/users` | Admin |
 | **Customers** | Full CRUD `/api/customers` | Admin |
-| **Technicians** | Full CRUD `/api/technicians` | Admin |
+| **Workers** | Full CRUD `/api/workers` | Admin |
 | **Blogs** | Full CRUD `/api/blogs` | Public read, Admin write |
 | **Coupons** | Full CRUD `/api/coupons` + apply | Public read, Admin write |
 | **Reviews** | Full CRUD `/api/reviews` | Public read, Auth write |
@@ -141,18 +141,18 @@ Request → Request ID → Logging → Helmet → Compression → CORS
 | **Cart** | Shopping cart |
 | **Coupon** | Discount codes with scopes & conditions |
 | **Payment** | Payment transactions |
-| **Technician** | Profiles, skills, availability |
+| **Worker** | Profiles, skills, availability |
 | **Customer** | Auto-created CRM records |
 | **Blog** | Blog posts with SEO fields |
 | **Review** | Product & service ratings |
 | **Expense** | Business expenses |
 | **ActivityLog** | Admin audit trail |
-| **Attendance** | Technician attendance |
+| **Attendance** | Worker attendance |
 | **Notification** | In-app alerts |
 | **MessageLog** | In-app messaging |
 | **JobApplication** | Careers |
 | **RecentWork** | Portfolio projects |
-| **LocationLog** | Technician location tracking |
+| **LocationLog** | Worker location tracking |
 
 ---
 

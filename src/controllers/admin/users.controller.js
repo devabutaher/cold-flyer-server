@@ -35,7 +35,7 @@ const getAllUsers = catchAsync(async (req, res) => {
 const getUser = catchAsync(async (req, res) => {
   const { id } = req.params;
 
-  const user = await User.findById(id).populate("technicianProfile").lean();
+  const user = await User.findById(id).populate("workerProfile").lean();
 
   if (!user) {
     throw ApiError.notFound("User not found");
@@ -93,8 +93,8 @@ const deleteUser = catchAsync(async (req, res) => {
     throw ApiError.notFound("User not found");
   }
 
-  if (user.technicianProfile) {
-    throw ApiError.badRequest("Remove the technician profile first before deleting this user.");
+  if (user.workerProfile) {
+    throw ApiError.badRequest("Remove the worker profile first before deleting this user.");
   }
 
   await User.findByIdAndDelete(id);

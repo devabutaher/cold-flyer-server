@@ -4,13 +4,13 @@ const ApiError = require("../utils/ApiError");
 const catchAsync = require("../utils/catchAsync");
 
 const getReviews = catchAsync(async (req, res) => {
-  const { product, service, technician, status, page = 1, limit = 20 } = req.query;
+  const { product, service, worker, status, page = 1, limit = 20 } = req.query;
 
   const query = {};
 
   if (product) query.product = product;
   if (service) query.service = service;
-  if (technician) query.technician = technician;
+  if (worker) query.worker = worker;
   if (status) query.status = status;
   else if (req.user?.role !== "admin") query.status = "approved";
 

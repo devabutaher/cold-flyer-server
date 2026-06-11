@@ -2,7 +2,7 @@ const Order = require("../models/Order");
 const User = require("../models/User");
 const ServiceBooking = require("../models/ServiceBooking");
 const Attendance = require("../models/Attendance");
-const Technician = require("../models/Technician");
+const Worker = require("../models/Worker");
 
 const logger = require("../utils/logger");
 
@@ -76,21 +76,21 @@ const getWorkerStats = async (userId) => {
     const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const technician = await Technician.findOne({ user: userId });
+    const worker = await Worker.findOne({ user: userId });
 
     const [todayBookings, monthlyStats, attendanceSummary, revenueData] = await Promise.all([
       ServiceBooking.find({
-        technician: technician?._id,
+        worker: worker?._id,
         scheduledDate: { $gte: todayStart, $lt: todayEnd },
       })
         .sort({ "scheduledTime.start": 1 })
         .populate("service", "name"),
       ServiceBooking.aggregate([
-        { $match: { technician: technician?._id, createdAt: { $gte: monthStart } } },
+        { $match: { worker: worker?._id, createdAt: { $gte: monthStart } } },
         { $group: { _id: "$status", count: { $sum: 1 } } },
       ]),
       Attendance.aggregate([
-        { $match: { worker: technician?._id, date: { $gte: monthStart, $lte: now } } },
+        { $match: { worker: worker?._id, date: { $gte: monthStart, $lte: now } } },
         {
           $group: {
             _id: null,
@@ -100,7 +100,7 @@ const getWorkerStats = async (userId) => {
         },
       ]),
       ServiceBooking.aggregate([
-        { $match: { technician: technician?._id, paymentStatus: "paid" } },
+        { $match: { worker: worker?._id, paymentStatus: "paid" } },
         { $group: { _id: null, total: { $sum: "$total" } } },
       ]),
     ]);
@@ -108,7 +108,7 @@ const getWorkerStats = async (userId) => {
     const monthlyMap = {};
     monthlyStats.forEach((s) => (monthlyMap[s._id] = s.count));
 
-    const avgRating = technician?.rating || 0;
+    const avgRating = worker?.rating || 0;
 
     return {
       todayBookings,

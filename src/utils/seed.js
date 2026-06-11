@@ -15,7 +15,7 @@ async function seed() {
     const Blog = require("../models/Blog");
     const RecentWork = require("../models/RecentWork");
     const Coupon = require("../models/Coupon");
-    const Technician = require("../models/Technician");
+    const Worker = require("../models/Worker");
     const Customer = require("../models/Customer");
     const Expense = require("../models/Expense");
     const ActivityLog = require("../models/ActivityLog");
@@ -41,7 +41,7 @@ async function seed() {
       Blog,
       RecentWork,
       Coupon,
-      Technician,
+      Worker,
       Customer,
       Expense,
       ActivityLog,
@@ -581,7 +581,7 @@ async function seed() {
         includes: ["Indoor Unit Disassembly", "Coil Cleaning", "Filter Wash", "Outdoor Unit Cleaning", "Sanitization"],
         exclusions: ["Gas Top-up", "Part Replacement"],
         requirements: ["Access to outdoor unit", "Power shutoff"],
-        qualifications: ["Certified Technician"],
+        qualifications: ["Certified Worker"],
         isFeatured: true,
         isActive: true,
       },
@@ -597,7 +597,7 @@ async function seed() {
         includes: ["Gas Top-up", "Leak Detection", "Pressure Test", "Performance Check"],
         exclusions: ["Leak Repair", "Part Replacement"],
         requirements: ["AC must be at least 1 year old"],
-        qualifications: ["EPA Certified Technician"],
+        qualifications: ["EPA Certified Worker"],
         isFeatured: true,
         isActive: true,
       },
@@ -629,7 +629,7 @@ async function seed() {
         includes: ["Compressor Replacement", "System Flush", "Filter Drier Replacement", "Vacuum & Gas Top-up"],
         exclusions: ["Compressor Cost", "Additional Parts"],
         requirements: ["Compressor model confirmed", "System must be accessible"],
-        qualifications: ["Master Technician"],
+        qualifications: ["Master Worker"],
         isActive: true,
       },
       {
@@ -659,7 +659,7 @@ async function seed() {
         includes: ["Full Inspection", "Temperature Check", "Current Draw Test", "Filter Clean", "Detailed Report"],
         exclusions: ["Repairs", "Part Replacement"],
         requirements: ["AC must be operational"],
-        qualifications: ["Certified Technician"],
+        qualifications: ["Certified Worker"],
         isFeatured: true,
         isActive: true,
       },
@@ -675,7 +675,7 @@ async function seed() {
         includes: ["Priority Dispatch", "Diagnostic Check", "Basic Repair", "Same-day Service"],
         exclusions: ["Major Part Cost", "Gas Refill"],
         requirements: ["Available access to unit"],
-        qualifications: ["Master Technician"],
+        qualifications: ["Master Worker"],
         isFeatured: true,
         isActive: true,
       },
@@ -697,7 +697,7 @@ async function seed() {
         ],
         exclusions: ["Part Replacement", "Major Repairs"],
         requirements: ["AC must be functional"],
-        qualifications: ["Certified Technician"],
+        qualifications: ["Certified Worker"],
         isFeatured: true,
         isActive: true,
       },
@@ -1127,7 +1127,7 @@ If you notice reduced airflow despite clean filters, or hear unusual sounds, cal
     // ══════════════════════════════════════════════════════════════════
     //  7. TECHNICIANS (3)
     // ══════════════════════════════════════════════════════════════════
-    const technicians = await Technician.create([
+    const workers = await Worker.create([
       {
         user: techUser._id,
         employeeId: "TECH-001",
@@ -1218,7 +1218,7 @@ If you notice reduced airflow despite clean filters, or hear unusual sounds, cal
         addedDate: "2024-04-01",
       },
     ]);
-    console.log(`✓ Seeded ${technicians.length} technicians`);
+    console.log(`✓ Seeded ${workers.length} workers`);
 
     // ══════════════════════════════════════════════════════════════════
     //  8. CUSTOMERS (10)
@@ -1370,7 +1370,7 @@ If you notice reduced airflow despite clean filters, or hear unusual sounds, cal
       { item: "Office Rent — May 2026", amount: 45000, date: "2026-05-01", category: "rent" },
       { item: "Electricity Bill — April", amount: 8500, date: "2026-04-28", category: "utilities" },
       { item: "Internet & Phone Bills", amount: 3500, date: "2026-05-01", category: "utilities" },
-      { item: "Technician Tool Kit Purchase", amount: 15000, date: "2026-04-15", category: "equipment" },
+      { item: "Worker Tool Kit Purchase", amount: 15000, date: "2026-04-15", category: "equipment" },
       { item: "Refrigerant Gas (R32) Restock", amount: 28000, date: "2026-04-20", category: "equipment" },
       { item: "Transport — Site Visits (April)", amount: 4500, date: "2026-04-30", category: "transport" },
       { item: "Social Media Marketing Campaign", amount: 12000, date: "2026-05-10", category: "marketing" },
@@ -1684,7 +1684,7 @@ If you notice reduced airflow despite clean filters, or hear unusual sounds, cal
         workDone:
           "Full disassembly cleaning of indoor and outdoor units. Coils cleaned with chemical wash. Filters replaced.",
         customerRating: 5,
-        customerReview: "Excellent service! AC feels like new. Technician was very thorough.",
+        customerReview: "Excellent service! AC feels like new. Worker was very thorough.",
         paymentStatus: "paid",
         source: "website",
       },
@@ -1762,7 +1762,7 @@ If you notice reduced airflow despite clean filters, or hear unusual sounds, cal
       blogs.length,
       recentWorks.length,
       coupons.length,
-      technicians.length,
+      workers.length,
       customers.length,
       expenses.length,
       activities.length,
@@ -1782,7 +1782,7 @@ If you notice reduced airflow despite clean filters, or hear unusual sounds, cal
     console.log(`  Blogs:           ${blogs.length}`);
     console.log(`  Recent Works:    ${recentWorks.length}`);
     console.log(`  Coupons:         ${coupons.length}`);
-    console.log(`  Technicians:     ${technicians.length}`);
+    console.log(`  Workers:         ${workers.length}`);
     console.log(`  Customers:       ${customers.length}`);
     console.log(`  Expenses:        ${expenses.length}`);
     console.log(`  Activity Logs:   ${activities.length}`);

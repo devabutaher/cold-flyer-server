@@ -5,14 +5,7 @@ const { getAllOrders } = require("./orders.controller");
 const { getAllServices } = require("./services.controller");
 const { getAllReviews } = require("./reviews.controller");
 const { createCoupon, getCoupons, updateCoupon, deleteCoupon, toggleCouponStatus } = require("./coupons.controller");
-const {
-  getTechnicians,
-  createTechnician,
-  getTechnician,
-  updateTechnician,
-  deleteTechnician,
-  createWorker,
-} = require("./technicians.controller");
+const { getWorkers, createWorker, getWorker, updateWorker, deleteWorker, createWorkerWithUser } = require("./workers.controller");
 const {
   getApplications,
   getApplication,
@@ -38,12 +31,12 @@ module.exports = {
   updateCoupon,
   deleteCoupon,
   toggleCouponStatus,
-  getTechnicians,
-  createTechnician,
-  getTechnician,
-  updateTechnician,
-  deleteTechnician,
+  getWorkers,
   createWorker,
+  getWorker,
+  updateWorker,
+  deleteWorker,
+  createWorkerWithUser,
   getApplications,
   getApplication,
   approveApplication,

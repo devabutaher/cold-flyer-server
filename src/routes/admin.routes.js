@@ -16,10 +16,10 @@ const {
   getCoupons,
   updateCoupon,
   deleteCoupon,
-  getTechnicians,
-  getTechnician,
-  deleteTechnician,
-  createWorker,
+  getWorkers,
+  getWorker,
+  deleteWorker,
+  createWorkerWithUser,
   getApplications,
   approveApplication,
   rejectApplication,
@@ -48,10 +48,10 @@ router.get("/coupons", authorize("admin", "moderator"), getCoupons);
 router.patch("/coupons/:id", authorize("admin", "moderator"), updateCoupon);
 router.delete("/coupons/:id", authorize("admin", "moderator"), deleteCoupon);
 
-router.get("/technicians", authorize("admin", "moderator"), getTechnicians);
-router.get("/technicians/:id", authorize("admin", "moderator"), getTechnician);
-router.delete("/technicians/:id", authorize("admin"), deleteTechnician);
-router.post("/workers", authorize("admin", "moderator"), createWorker);
+router.get("/workers", authorize("admin", "moderator"), getWorkers);
+router.get("/workers/:id", authorize("admin", "moderator"), getWorker);
+router.delete("/workers/:id", authorize("admin"), deleteWorker);
+router.post("/workers", authorize("admin", "moderator"), createWorkerWithUser);
 
 router.get("/applications", authorize("admin", "moderator"), getApplications);
 router.patch("/applications/:id/approve", authorize("admin", "moderator"), approveApplication);

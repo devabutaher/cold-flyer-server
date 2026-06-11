@@ -1,5 +1,5 @@
 const User = require("../models/User");
-const Technician = require("../models/Technician");
+const Worker = require("../models/Worker");
 const JobApplication = require("../models/JobApplication");
 const ApiError = require("../utils/ApiError");
 const catchAsync = require("../utils/catchAsync");
@@ -120,8 +120,8 @@ const approveApplication = catchAsync(async (req, res) => {
   // Generate employeeId
   const employeeId = `CF-${String(Math.floor(Math.random() * 99999)).padStart(5, "0")}`;
 
-  // Create technician profile
-  const technician = await Technician.create({
+  // Create worker profile
+  const worker = await Worker.create({
     user: user._id,
     employeeId,
     specializations: application.skills || [],
@@ -130,8 +130,8 @@ const approveApplication = catchAsync(async (req, res) => {
     isActive: true,
   });
 
-  // Link technician profile to user
-  user.technicianProfile = technician._id;
+  // Link worker profile to user
+  user.workerProfile = worker._id;
   await user.save();
 
   // Update application
@@ -145,12 +145,12 @@ const approveApplication = catchAsync(async (req, res) => {
     logger.error({ err, email: application.email }, "sendApplicationApprovedEmail failed"),
   );
 
-  const populated = await Technician.findById(technician._id).populate("user", "name email phone avatar");
+  const populated = await Worker.findById(worker._id).populate("user", "name email phone avatar");
 
   res.json({
     success: true,
-    message: "Application approved. Technician profile created.",
-    data: { application, technician: populated },
+    message: "Application approved. Worker profile created.",
+    data: { application, worker: populated },
   });
 });
 
@@ -196,8 +196,8 @@ const deleteApplication = catchAsync(async (req, res) => {
 
   if (application.status === "approved") {
     const user = await User.findOne({ email: application.email.toLowerCase() });
-    if (user?.technicianProfile) {
-      throw ApiError.badRequest("Cannot delete an approved application. Remove the technician profile first.");
+    if (user?.workerProfile) {
+      throw ApiError.badRequest("Cannot delete an approved application. Remove the worker profile first.");
     }
   }
 

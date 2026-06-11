@@ -1,159 +1,75 @@
-const Customer = require("../models/Customer");
-const Expense = require("../models/Expense");
-const Technician = require("../models/Technician");
 const Order = require("../models/Order");
+const Product = require("../models/Product");
 const ServiceBooking = require("../models/ServiceBooking");
+const Expense = require("../models/Expense");
+const Worker = require("../models/Worker");
+const ApiError = require("../utils/ApiError");
 const catchAsync = require("../utils/catchAsync");
 
-function buildDateFilter(year, month) {
-  const filter = {};
-  if (year) {
-    const yearStr = String(year);
-    filter.date = { $regex: `^${yearStr}` };
-    if (month) {
-      filter.date = { $regex: `^${yearStr}-${String(month).padStart(2, "0")}` };
-    }
-  }
-  return filter;
-}
-
 const getReport = catchAsync(async (req, res) => {
-  const { year, month } = req.query;
-  const dateFilter = buildDateFilter(year, month);
+  const { startDate, endDate } = req.query;
 
-  // Customer revenue
-  const customerAgg = await Customer.aggregate([
-    { $match: { status: "active", ...(dateFilter.date ? { installDate: dateFilter.date } : {}) } },
-    { $group: { _id: null, total: { $sum: "$amount" }, count: { $sum: 1 } } },
+  const dateFilter = {};
+  if (startDate || endDate) {
+    dateFilter.createdAt = {};
+    if (startDate) dateFilter.createdAt.$gte = new Date(startDate);
+    if (endDate) dateFilter.createdAt.$lte = new Date(endDate);
+  }
+
+  const totalOrders = await Order.countDocuments(dateFilter);
+  const totalBookings = await ServiceBooking.countDocuments(dateFilter);
+  const totalExpenses = await Expense.countDocuments(dateFilter);
+  const totalWorkers = await Worker.countDocuments({ isActive: true });
+
+  // Total revenue from paid orders
+  const orderRevenue = await Order.aggregate([
+    { $match: { ...dateFilter, paymentStatus: "paid" } },
+    { $group: { _id: null, total: { $sum: "$total" } } },
   ]);
-  const customerRevenue = customerAgg[0]?.total || 0;
-  const customerCount = customerAgg[0]?.count || 0;
 
-  // E-commerce revenue
-  const orderAgg = await Order.aggregate([
-    {
-      $match: {
-        paymentStatus: "paid",
-        ...(dateFilter.date
-          ? { createdAt: { $gte: new Date(year, (month || 1) - 1, 1), $lt: new Date(year, month || 12, 1) } }
-          : {}),
-      },
-    },
-    { $group: { _id: null, total: { $sum: "$total" }, count: { $sum: 1 } } },
+  const bookingRevenue = await ServiceBooking.aggregate([
+    { $match: { ...dateFilter, paymentStatus: "paid" } },
+    { $group: { _id: null, total: { $sum: "$total" } } },
   ]);
-  const orderRevenue = orderAgg[0]?.total || 0;
-  const orderCount = orderAgg[0]?.count || 0;
 
-  // Service booking revenue
-  const bookingAgg = await ServiceBooking.aggregate([
-    {
-      $match: {
-        paymentStatus: "paid",
-        ...(dateFilter.date
-          ? { createdAt: { $gte: new Date(year, (month || 1) - 1, 1), $lt: new Date(year, month || 12, 1) } }
-          : {}),
-      },
-    },
-    { $group: { _id: null, total: { $sum: "$total" }, count: { $sum: 1 } } },
+  const salaryAgg = await Worker.aggregate([
+    { $match: { isActive: true } },
+    { $group: { _id: null, total: { $sum: "$salary" } } },
   ]);
-  const bookingRevenue = bookingAgg[0]?.total || 0;
-  const bookingCount = bookingAgg[0]?.count || 0;
 
-  const totalRevenue = customerRevenue + orderRevenue + bookingRevenue;
-
-  // Expenses
   const expenseAgg = await Expense.aggregate([
     { $match: dateFilter },
-    { $group: { _id: null, total: { $sum: "$amount" }, count: { $sum: 1 } } },
-  ]);
-  const totalExpenses = expenseAgg[0]?.total || 0;
-  const expenseCount = expenseAgg[0]?.count || 0;
-
-  // Salary (active workers)
-  const salaryAgg = await Technician.aggregate([
-    { $match: { isActive: true, salary: { $gt: 0 } } },
-    { $group: { _id: null, total: { $sum: "$salary" }, count: { $sum: 1 } } },
-  ]);
-  const totalSalary = salaryAgg[0]?.total || 0;
-
-  // Net profit
-  const netProfit = totalRevenue - totalExpenses - totalSalary;
-
-  // Service breakdown (from Customer model)
-  const serviceBreakdown = await Customer.aggregate([
-    { $match: dateFilter },
-    { $group: { _id: "$service", count: { $sum: 1 }, revenue: { $sum: "$amount" } } },
-    { $sort: { count: -1 } },
+    { $group: { _id: null, total: { $sum: "$amount" } } },
   ]);
 
-  // Customers by income
-  const topCustomers = await Customer.find(dateFilter)
-    .sort({ amount: -1 })
-    .limit(20)
-    .select("name phone brand model service amount installDate status");
-
-  // Expenses list
-  const expenses = await Expense.find(dateFilter).sort({ date: -1 }).limit(100);
-
-  // Active workers
-  const workers = await Technician.find({ isActive: true })
+  const workers = await Worker.find({ isActive: true })
     .populate("user", "name email phone")
-    .select("nid bloodGroup salary")
-    .sort({ createdAt: -1 });
+    .select("employeeId specializations salary status")
+    .lean();
 
   res.json({
     success: true,
     data: {
       summary: {
-        totalRevenue,
+        totalOrders,
+        totalBookings,
         totalExpenses,
-        totalSalary,
-        netProfit,
-        customerRevenue,
-        orderRevenue,
-        bookingRevenue,
+        totalWorkers,
+        orderRevenue: orderRevenue[0]?.total || 0,
+        bookingRevenue: bookingRevenue[0]?.total || 0,
+        totalSalary: salaryAgg[0]?.total || 0,
+        totalExpenseAmount: expenseAgg[0]?.total || 0,
       },
-      counts: {
-        customers: customerCount,
-        orders: orderCount,
-        bookings: bookingCount,
-        expenses: expenseCount,
-        activeWorkers: workers.length,
-      },
-      serviceBreakdown,
-      topCustomers,
-      expenses,
       workers,
     },
   });
 });
 
 const getDuplicateCustomers = catchAsync(async (req, res) => {
-  const { field = "phone" } = req.query;
-
-  const groupField = field === "both" ? { phone: "$phone", address: "$address" } : `$${field}`;
-
+  const Customer = require("../models/Customer");
   const duplicates = await Customer.aggregate([
-    {
-      $group: {
-        _id: groupField,
-        count: { $sum: 1 },
-        customers: {
-          $push: {
-            _id: "$_id",
-            name: "$name",
-            phone: "$phone",
-            address: "$address",
-            brand: "$brand",
-            model: "$model",
-            service: "$service",
-            amount: "$amount",
-          },
-        },
-      },
-    },
+    { $group: { _id: { phone: "$phone" }, count: { $sum: 1 }, customers: { $push: { _id: "$_id", name: "$name", email: "$email", phone: "$phone" } } } },
     { $match: { count: { $gt: 1 } } },
-    { $sort: { count: -1 } },
   ]);
 
   res.json({ success: true, data: { duplicates } });

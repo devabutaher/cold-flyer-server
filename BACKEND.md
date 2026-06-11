@@ -38,7 +38,7 @@ cold-flyer-server/
 │   │   │   ├── reviews.controller.js
 │   │   │   ├── users.controller.js
 │   │   │   ├── coupons.controller.js
-│   │   │   └── technicians.controller.js
+│   │   │   └── workers.controller.js
 │   │   ├── auth.controller.js
 │   │   ├── blog.controller.js
 │   │   ├── cart.controller.js
@@ -76,7 +76,7 @@ cold-flyer-server/
 │   │   ├── Coupon.js
 │   │   ├── Notification.js
 │   │   ├── Payment.js
-│   │   ├── Technician.js
+│   │   ├── Worker.js
 │   │   ├── Blog.js
 │   │   ├── Expense.js
 │   │   ├── Customer.js
@@ -237,9 +237,9 @@ cold-flyer-server/
     type: ObjectId,
     ref: 'ServiceBooking'
   }],
-  technicianProfile: {
+  workerProfile: {
     type: ObjectId,
-    ref: 'Technician',
+    ref: 'Worker',
     default: null
   },
   isActive: {
@@ -582,7 +582,7 @@ cold-flyer-server/
   bookingNumber: { type: String, unique: true },  // Format: SB-{year}-{random5}
   user: { type: ObjectId, ref: 'User', required: true },
   service: { type: ObjectId, ref: 'Service', required: true },
-  technician: { type: ObjectId, ref: 'Technician' },
+  worker: { type: ObjectId, ref: 'Worker' },
   items: [{
     service: ObjectId,
     name: String,
@@ -648,10 +648,10 @@ cold-flyer-server/
 - scheduledDate: 1
 ```
 
-### 6. Technician Schema
+### 6. Worker Schema
 
 ```javascript
-// Model: Technician.js
+// Model: Worker.js
 {
   _id: ObjectId,
   user: {
@@ -769,9 +769,9 @@ cold-flyer-server/
     type: ObjectId,
     ref: 'Service'
   },
-  technician: {
+  worker: {
     type: ObjectId,
-    ref: 'Technician'
+    ref: 'Worker'
   },
   booking: {
     type: ObjectId,
@@ -1268,7 +1268,7 @@ cold-flyer-server/
   _id: ObjectId,
   worker: {
     type: ObjectId,
-    ref: 'Technician',
+    ref: 'Worker',
     required: true
   },
   workerName: { type: String },
@@ -1303,7 +1303,7 @@ cold-flyer-server/
   _id: ObjectId,
   worker: {
     type: ObjectId,
-    ref: 'Technician'
+    ref: 'Worker'
   },
   workerName: { type: String },
   date: { type: String },
@@ -1391,7 +1391,7 @@ cold-flyer-server/
 |------|-----------|
 | `customer` | Manage own profile, orders, cart, wishlist, service bookings |
 | `worker` | Customer + own attendance check-in/out, start/complete assigned bookings |
-| `moderator` | CRUD content (products, services, blogs, coupons, recent-works), manage bookings/orders/users (except admin/moderator accounts), manage technicians/applications. CANNOT access analytics, expenses, attendance, location, activity-log, reports |
+| `moderator` | CRUD content (products, services, blogs, coupons, recent-works), manage bookings/orders/users (except admin/moderator accounts), manage workers/applications. CANNOT access analytics, expenses, attendance, location, activity-log, reports |
 | `admin` | Full access to all resources |
 | *Super Admin* | `admin` role + identified by `ADMIN_EMAIL` env var. Only they can assign `admin` role to other users |
 
@@ -1435,7 +1435,7 @@ Access token sent via `Authorization: Bearer` header or `accessToken` httpOnly c
 | Reviews | Create | Yes | Yes | Yes | Yes |
 | Reviews | Moderate | - | - | - | Yes |
 | Coupons | CRUD | - | - | Yes | Yes |
-| Technicians | Manage | - | - | Yes | Yes |
+| Workers | Manage | - | - | Yes | Yes |
 | Applications | Manage | - | - | Yes | Yes |
 | Reports | Read | - | - | - | Yes |
 | Dashboard Settings | Access | - | - | - | Yes |
@@ -1653,11 +1653,11 @@ GET    /api/admin/coupons         - List coupons
 PATCH  /api/admin/coupons/:id     - Update coupon
 DELETE /api/admin/coupons/:id    - Delete coupon
 PATCH  /api/admin/coupons/:id/toggle - Toggle coupon status
-GET    /api/admin/technicians      - List technicians
-POST   /api/admin/technicians      - Create technician
-GET    /api/admin/technicians/:id  - Get technician
-PATCH  /api/admin/technicians/:id  - Update technician
-DELETE /api/admin/technicians/:id  - Delete technician
+GET    /api/admin/workers      - List workers
+POST   /api/admin/workers      - Create worker
+GET    /api/admin/workers/:id  - Get worker
+PATCH  /api/admin/workers/:id  - Update worker
+DELETE /api/admin/workers/:id  - Delete worker
 GET    /api/admin/applications     - List job applications
 GET    /api/admin/applications/:id - Get application
 PATCH  /api/admin/applications/:id/approve - Approve application
@@ -1876,7 +1876,7 @@ Seed data details:
 - **Blogs**: 6 posts with categories (`Tips`, `Buying Guide`, `Industry`, `Maintenance`), SEO metadata, `featured` flags, view counts
 - **RecentWorks**: 4 portfolio entries across `installation`/`repair`/`maintenance`/`commercial` categories with before/after images
 - **Coupons**: 6 coupons — 4 active (`SUMMER25`, `FREESHIP`, `WELCOME10`, `FIXED500`), 1 expired (`EXPIRED20`), 1 service-only (`SERVICE10`)
-- **Technicians**: 2 technicians linked to user accounts, with skills, certifications, service areas
+- **Workers**: 2 workers linked to user accounts, with skills, certifications, service areas
 - **Customers**: 10 customers with purchase history and contact info
 - **Expenses**: 8 expense records across 4 categories
 - **ActivityLogs**: 10 activity log entries across 5 action types

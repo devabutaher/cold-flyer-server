@@ -4,7 +4,7 @@ const locationLogSchema = new mongoose.Schema(
   {
     worker: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Technician",
+      ref: "Worker",
     },
     workerName: { type: String },
     date: { type: String },

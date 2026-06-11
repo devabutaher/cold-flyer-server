@@ -1,30 +1,30 @@
 const User = require("../../models/User");
-const Technician = require("../../models/Technician");
+const Worker = require("../../models/Worker");
 const ApiError = require("../../utils/ApiError");
 const catchAsync = require("../../utils/catchAsync");
 
-const getTechnicians = catchAsync(async (req, res) => {
+const getWorkers = catchAsync(async (req, res) => {
   const { status, page = 1, limit = 20 } = req.query;
 
   const query = {};
   if (status) query.status = status;
 
-  const technicians = await Technician.find(query)
+  const workers = await Worker.find(query)
     .populate("user", "name email phone avatar")
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(parseInt(limit));
 
-  const total = await Technician.countDocuments(query);
+  const total = await Worker.countDocuments(query);
 
   res.json({
     success: true,
-    data: { technicians },
+    data: { workers },
     meta: { page: parseInt(page), limit: parseInt(limit), total, totalPages: Math.ceil(total / limit) },
   });
 });
 
-const createTechnician = catchAsync(async (req, res) => {
+const createWorker = catchAsync(async (req, res) => {
   const { userId, employeeId, specializations, serviceAreas, vehicle, tools, hireDate, ...rest } = req.body;
 
   if (!userId) {
@@ -36,11 +36,11 @@ const createTechnician = catchAsync(async (req, res) => {
     throw ApiError.notFound("User not found");
   }
 
-  if (user.technicianProfile) {
-    throw ApiError.conflict("User already has a technician profile");
+  if (user.workerProfile) {
+    throw ApiError.conflict("User already has a worker profile");
   }
 
-  const technician = await Technician.create({
+  const worker = await Worker.create({
     user: userId,
     employeeId,
     specializations: specializations || [],
@@ -51,60 +51,60 @@ const createTechnician = catchAsync(async (req, res) => {
     ...rest,
   });
 
-  user.technicianProfile = technician._id;
+  user.workerProfile = worker._id;
   await user.save();
 
-  const populated = await Technician.findById(technician._id).populate("user", "name email phone avatar");
+  const populated = await Worker.findById(worker._id).populate("user", "name email phone avatar");
 
   res.status(201).json({
     success: true,
-    message: "Technician profile created",
-    data: { technician: populated },
+    message: "Worker profile created",
+    data: { worker: populated },
   });
 });
 
-const getTechnician = catchAsync(async (req, res) => {
+const getWorker = catchAsync(async (req, res) => {
   const { id } = req.params;
 
-  const technician = await Technician.findById(id).populate("user", "name email phone avatar");
+  const worker = await Worker.findById(id).populate("user", "name email phone avatar");
 
-  if (!technician) {
-    throw ApiError.notFound("Technician not found");
+  if (!worker) {
+    throw ApiError.notFound("Worker not found");
   }
 
-  res.json({ success: true, data: { technician } });
+  res.json({ success: true, data: { worker } });
 });
 
-const updateTechnician = catchAsync(async (req, res) => {
+const updateWorker = catchAsync(async (req, res) => {
   const { id } = req.params;
 
-  const technician = await Technician.findByIdAndUpdate(id, req.body, {
+  const worker = await Worker.findByIdAndUpdate(id, req.body, {
     new: true,
     runValidators: true,
   }).populate("user", "name email phone avatar");
 
-  if (!technician) {
-    throw ApiError.notFound("Technician not found");
+  if (!worker) {
+    throw ApiError.notFound("Worker not found");
   }
 
-  res.json({ success: true, message: "Technician updated", data: { technician } });
+  res.json({ success: true, message: "Worker updated", data: { worker } });
 });
 
-const deleteTechnician = catchAsync(async (req, res) => {
+const deleteWorker = catchAsync(async (req, res) => {
   const { id } = req.params;
 
-  const technician = await Technician.findById(id);
-  if (!technician) {
-    throw ApiError.notFound("Technician not found");
+  const worker = await Worker.findById(id);
+  if (!worker) {
+    throw ApiError.notFound("Worker not found");
   }
 
-  await User.findByIdAndUpdate(technician.user, { technicianProfile: null });
-  await Technician.findByIdAndDelete(id);
+  await User.findByIdAndUpdate(worker.user, { workerProfile: null });
+  await Worker.findByIdAndDelete(id);
 
-  res.json({ success: true, message: "Technician profile removed" });
+  res.json({ success: true, message: "Worker profile removed" });
 });
 
-const createWorker = catchAsync(async (req, res) => {
+const createWorkerWithUser = catchAsync(async (req, res) => {
   const { name, email, phone, password, specializations, salary } = req.body;
 
   if (!name || !email || !password) {
@@ -120,7 +120,7 @@ const createWorker = catchAsync(async (req, res) => {
 
   const employeeId = `CF-${String(Math.floor(10000 + Math.random() * 90000)).slice(0, 5)}`;
 
-  const technician = await Technician.create({
+  const worker = await Worker.create({
     user: user._id,
     employeeId,
     specializations: specializations
@@ -137,16 +137,16 @@ const createWorker = catchAsync(async (req, res) => {
     isActive: true,
   });
 
-  user.technicianProfile = technician._id;
+  user.workerProfile = worker._id;
   await user.save();
 
-  const populated = await Technician.findById(technician._id).populate("user", "name email phone avatar");
+  const populated = await Worker.findById(worker._id).populate("user", "name email phone avatar");
 
   res.status(201).json({
     success: true,
     message: "Worker created successfully",
-    data: { technician: populated },
+    data: { worker: populated },
   });
 });
 
-module.exports = { getTechnicians, createTechnician, getTechnician, updateTechnician, deleteTechnician, createWorker };
+module.exports = { getWorkers, createWorker, getWorker, updateWorker, deleteWorker, createWorkerWithUser };

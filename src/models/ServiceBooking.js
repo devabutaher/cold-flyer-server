@@ -31,7 +31,7 @@ const serviceBookingSchema = new mongoose.Schema(
     acGasType: { type: String, trim: true },
     acType: { type: String, trim: true },
     service: { type: mongoose.Schema.Types.ObjectId, ref: "Service", required: true },
-    technician: { type: mongoose.Schema.Types.ObjectId, ref: "Technician" },
+    worker: { type: mongoose.Schema.Types.ObjectId, ref: "Worker" },
     items: [serviceItemSchema],
     subtotal: { type: Number, required: true },
     discount: { type: Number, default: 0 },
@@ -85,7 +85,7 @@ serviceBookingSchema.index({ user: 1 });
 serviceBookingSchema.index({ status: 1 });
 serviceBookingSchema.index({ scheduledDate: 1 });
 serviceBookingSchema.index({ paymentStatus: 1 });
-serviceBookingSchema.index({ technician: 1, createdAt: -1 });
+serviceBookingSchema.index({ worker: 1, createdAt: -1 });
 
 serviceBookingSchema.pre("save", function (next) {
   if (!this.bookingNumber) {

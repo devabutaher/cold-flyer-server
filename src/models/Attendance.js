@@ -4,7 +4,7 @@ const attendanceSchema = new mongoose.Schema(
   {
     worker: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Technician",
+      ref: "Worker",
       required: true,
     },
     workerName: { type: String },

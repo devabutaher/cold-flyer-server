@@ -32,9 +32,9 @@ const reviewSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Service",
     },
-    technician: {
+    worker: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Technician",
+      ref: "Worker",
     },
     booking: {
       type: mongoose.Schema.Types.ObjectId,
@@ -90,6 +90,6 @@ reviewSchema.index({ product: 1, rating: -1 });
 reviewSchema.index({ user: 1 });
 reviewSchema.index({ product: 1, status: 1 });
 reviewSchema.index({ service: 1 });
-reviewSchema.index({ technician: 1 });
+reviewSchema.index({ worker: 1 });
 
 module.exports = mongoose.model("Review", reviewSchema);

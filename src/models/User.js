@@ -102,9 +102,9 @@ const userSchema = new mongoose.Schema(
         ref: "ServiceBooking",
       },
     ],
-    technicianProfile: {
+    workerProfile: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Technician",
+      ref: "Worker",
       default: null,
     },
     isActive: {

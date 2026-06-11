@@ -209,7 +209,7 @@ const sendBookingConfirmationEmail = async (email, name, booking, status = "conf
     const statusMessages = {
       confirmed:
         "Your service booking has been confirmed. Our team will contact you shortly to schedule a convenient time.",
-      scheduled: "Your service has been scheduled. A technician will visit you at the scheduled time.",
+      scheduled: "Your service has been scheduled. A worker will visit you at the scheduled time.",
       completed: "Your service has been completed. Thank you for choosing Cold Flyer!",
       cancelled: "Your service booking has been cancelled.",
     };
@@ -413,7 +413,7 @@ const sendApplicationApprovedEmail = async (email, name) => {
       previewText: `Congratulations! Your application to ${BRAND_NAME} has been approved.`,
       content: `
         <p style="margin: 0 0 12px; font-size: 15px;">We are pleased to inform you that your application has been approved.</p>
-        <p style="margin: 0 0 12px; font-size: 15px;">You are now part of the ${BRAND_NAME} team as a technician. You can log in to your dashboard to view your profile and manage your service bookings.</p>
+        <p style="margin: 0 0 12px; font-size: 15px;">You are now part of the ${BRAND_NAME} team as a worker. You can log in to your dashboard to view your profile and manage your service bookings.</p>
       `,
       buttonUrl: dashboardUrl,
       buttonText: "Go to Dashboard",

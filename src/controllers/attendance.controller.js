@@ -1,5 +1,5 @@
 const Attendance = require("../models/Attendance");
-const Technician = require("../models/Technician");
+const Worker = require("../models/Worker");
 const LocationLog = require("../models/LocationLog");
 const ApiError = require("../utils/ApiError");
 const catchAsync = require("../utils/catchAsync");
@@ -16,20 +16,20 @@ function nowTime() {
 const getTodayStatus = catchAsync(async (req, res) => {
   // Workers see only their own status
   if (req.user.role === "worker") {
-    const workerTech = await Technician.findById(req.user.technicianProfile).lean();
-    if (!workerTech) {
+    const workerRecord = await Worker.findById(req.user.workerProfile).lean();
+    if (!workerRecord) {
       return res.json({ success: true, data: { workers: [] } });
     }
 
     const today = todayStr();
-    const record = await Attendance.findOne({ worker: req.user.technicianProfile, date: today }).lean();
+    const record = await Attendance.findOne({ worker: req.user.workerProfile, date: today }).lean();
 
     const result = [
       {
-        _id: workerTech._id,
+        _id: workerRecord._id,
         workerName: req.user.name || "Unknown",
         phone: req.user.phone || "",
-        status: workerTech.status,
+        status: workerRecord.status,
         attendance: record
           ? {
               _id: record._id,
@@ -46,7 +46,7 @@ const getTodayStatus = catchAsync(async (req, res) => {
     return res.json({ success: true, data: { workers: result } });
   }
 
-  const workers = await Technician.find({ isActive: true })
+  const workers = await Worker.find({ isActive: true })
     .populate("user", "name email phone avatar")
     .select("user status nid bloodGroup emergencyContact salary")
     .sort({ createdAt: -1 })
@@ -99,7 +99,7 @@ const getAttendanceHistory = catchAsync(async (req, res) => {
 
   // Workers can only see their own history
   if (req.user.role === "worker") {
-    query.worker = req.user.technicianProfile;
+    query.worker = req.user.workerProfile;
   } else if (workerId) {
     query.worker = workerId;
   }
@@ -124,12 +124,12 @@ const checkin = catchAsync(async (req, res) => {
   if (!workerId) throw ApiError.badRequest("workerId is required");
 
   // Workers can only check in for themselves
-  if (req.user.role === "worker" && req.user.technicianProfile?.toString() !== workerId) {
+  if (req.user.role === "worker" && req.user.workerProfile?.toString() !== workerId) {
     throw ApiError.forbidden("You can only check in for yourself");
   }
 
-  const technician = await Technician.findById(workerId).populate("user", "name");
-  if (!technician) throw ApiError.notFound("Technician not found");
+  const workerRecord = await Worker.findById(workerId).populate("user", "name");
+  if (!workerRecord) throw ApiError.notFound("Worker not found");
 
   const today = todayStr();
   const existing = await Attendance.findOne({ worker: workerId, date: today }).lean();
@@ -138,7 +138,7 @@ const checkin = catchAsync(async (req, res) => {
   }
 
   const inTime = nowTime();
-  const workerName = technician.user?.name || "Unknown";
+  const workerName = workerRecord.user?.name || "Unknown";
 
   const record = await Attendance.create({
     worker: workerId,
@@ -151,9 +151,9 @@ const checkin = catchAsync(async (req, res) => {
     lng: lng || undefined,
   });
 
-  // Update technician status
-  technician.status = "available";
-  await technician.save();
+  // Update worker status
+  workerRecord.status = "available";
+  await workerRecord.save();
 
   // Log location
   if (location || (lat && lng)) {
@@ -177,7 +177,7 @@ const checkout = catchAsync(async (req, res) => {
   if (!workerId) throw ApiError.badRequest("workerId is required");
 
   // Workers can only check out for themselves
-  if (req.user.role === "worker" && req.user.technicianProfile?.toString() !== workerId) {
+  if (req.user.role === "worker" && req.user.workerProfile?.toString() !== workerId) {
     throw ApiError.forbidden("You can only check out for yourself");
   }
 
@@ -190,8 +190,8 @@ const checkout = catchAsync(async (req, res) => {
   if (note) record.note = note;
   await record.save();
 
-  // Update technician status
-  await Technician.findByIdAndUpdate(workerId, { status: "offline" });
+  // Update worker status
+  await Worker.findByIdAndUpdate(workerId, { status: "offline" });
 
   res.json({ success: true, data: { attendance: record } });
 });
