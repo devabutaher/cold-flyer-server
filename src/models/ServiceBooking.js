@@ -84,6 +84,8 @@ const serviceBookingSchema = new mongoose.Schema(
 serviceBookingSchema.index({ user: 1 });
 serviceBookingSchema.index({ status: 1 });
 serviceBookingSchema.index({ scheduledDate: 1 });
+serviceBookingSchema.index({ paymentStatus: 1 });
+serviceBookingSchema.index({ technician: 1, createdAt: -1 });
 
 serviceBookingSchema.pre("save", function (next) {
   if (!this.bookingNumber) {

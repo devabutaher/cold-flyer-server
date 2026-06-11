@@ -2,7 +2,8 @@ const catchAsync = require("../../utils/catchAsync");
 const { getDashboardStats, getSalesAnalytics, getServiceAnalytics } = require("../../services/analytics.service");
 
 const getDashboard = catchAsync(async (req, res) => {
-  const stats = await getDashboardStats();
+  const { startDate, endDate } = req.query;
+  const stats = await getDashboardStats(startDate, endDate);
   res.json({ success: true, data: stats });
 });
 

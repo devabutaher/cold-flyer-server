@@ -94,8 +94,9 @@ app.use(
           "https://www.google-analytics.com",
           "https://www.googletagmanager.com",
         ],
-        imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://*.unsplash.com"],
+        imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://*.unsplash.com", "https://*.googleusercontent.com"],
         styleSrc: ["'self'", "'unsafe-inline'"],
+        fontSrc: ["'self'", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],
       },
     },
     crossOriginEmbedderPolicy: false,
@@ -163,6 +164,12 @@ const statsRoutes = require("./routes/stats.routes");
 app.use("/api/public/stats", statsRoutes);
 
 // ── Auth routes ────────────────────────────────────────
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { success: false, message: "Too many login attempts, please try again later" },
+});
+app.use("/api/auth/login", authLimiter);
 app.use("/api/auth", authRoutes);
 
 // ── SSLCOMMERZ return (no CSRF — SSLCOMMERZ POSTs directly) ──
@@ -182,6 +189,7 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/payments/sslcommerz", sslcommerzRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/dashboard", require("./routes/dashboard.routes"));
 app.use("/api/coupons", couponRoutes);
 app.use("/api/upload", require("./routes/upload.routes"));
 app.use("/api/job-applications", jobApplicationRoutes);
