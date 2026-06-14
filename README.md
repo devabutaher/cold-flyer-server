@@ -13,6 +13,8 @@ Run `npm run seed` to populate sample data:
 | Admin | `admin@coldflyer.com` | `Admin@1234` |
 | Moderator | `mod@coldflyer.com` | `Mod@1234` |
 | Worker | `tech@coldflyer.com` | `Tech@1234` |
+| Worker | `shamim@coldflyer.com` | `Tech@1234` |
+| Worker | `shahana@coldflyer.com` | `Tech@1234` |
 | Customer | `fatima@example.com` | `User@1234` |
 
 ---
@@ -43,7 +45,7 @@ npm install
 Copy `.env.example` to `.env` and fill in the required variables. Then:
 
 ```bash
-npm run seed     # Seed 92 records across 12 models
+npm run seed     # Seed 241 records across 15 models
 npm start        # Start server on port 5000
 ```
 
@@ -57,7 +59,7 @@ The frontend at `cold-flyer/` proxies all `/api/*` requests to this server.
 |---------|-------------|
 | `npm start` | Start production server |
 | `npm run dev` | Start with nodemon (auto-restart) |
-| `npm run seed` | Seed database with 92 sample records |
+| `npm run seed` | Seed database with 241 sample records |
 | `npm run lint` | Run ESLint |
 | `npm run format` | Format with Prettier |
 
