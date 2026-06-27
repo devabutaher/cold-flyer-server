@@ -18,7 +18,6 @@ const expenseSchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      enum: ["rent", "utilities", "equipment", "transport", "salary", "marketing", "other"],
       default: "other",
     },
     addedBy: { type: String },

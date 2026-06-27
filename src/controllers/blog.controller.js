@@ -37,7 +37,11 @@ const getBlogs = catchAsync(async (req, res) => {
 const getBlogBySlug = catchAsync(async (req, res) => {
   const { slug } = req.params;
 
-  const blog = await Blog.findOne({ slug }).populate("author", "name avatar");
+  let blog = await Blog.findOne({ slug }).populate("author", "name avatar");
+
+  if (!blog && slug.match(/^[0-9a-f]{24}$/)) {
+    blog = await Blog.findById(slug).populate("author", "name avatar");
+  }
 
   if (!blog) {
     throw ApiError.notFound("Blog not found");

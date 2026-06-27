@@ -90,9 +90,12 @@ const getProductById = catchAsync(async (req, res) => {
 });
 
 const getFeaturedProducts = catchAsync(async (req, res) => {
-  const { limit = 10 } = req.query;
+  const { limit = 10, productType } = req.query;
 
-  const products = await Product.find({ featured: true, isActive: true })
+  const filter = { featured: true, isActive: true };
+  if (productType) filter.productType = productType;
+
+  const products = await Product.find(filter)
     .sort({ rating: -1 })
     .limit(parseInt(limit))
     .lean();

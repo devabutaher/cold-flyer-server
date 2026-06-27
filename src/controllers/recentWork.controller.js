@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const RecentWork = require("../models/RecentWork");
 const ApiError = require("../utils/ApiError");
 const catchAsync = require("../utils/catchAsync");
@@ -37,7 +38,11 @@ const getRecentWorks = catchAsync(async (req, res) => {
 const getRecentWorkBySlug = catchAsync(async (req, res) => {
   const { slug } = req.params;
 
-  const recentWork = await RecentWork.findOne({ slug }).populate("author", "name avatar");
+  let recentWork = await RecentWork.findOne({ slug }).populate("author", "name avatar");
+
+  if (!recentWork && mongoose.Types.ObjectId.isValid(slug)) {
+    recentWork = await RecentWork.findById(slug).populate("author", "name avatar");
+  }
 
   if (!recentWork) {
     throw ApiError.notFound("Recent work not found");
