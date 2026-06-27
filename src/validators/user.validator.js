@@ -5,7 +5,7 @@ const updateProfileSchema = z.object({
     name: z.string().min(2).max(100).optional(),
     phone: z.string().min(10).optional(),
     dateOfBirth: z.string().optional(),
-    gender: z.enum(["male", "female", "other", null]).optional(),
+    gender: z.enum(["male", "female", null]).optional(),
   }),
 });
 

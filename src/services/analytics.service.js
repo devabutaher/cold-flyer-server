@@ -2,6 +2,7 @@ const Order = require("../models/Order");
 const Product = require("../models/Product");
 const User = require("../models/User");
 const ServiceBooking = require("../models/ServiceBooking");
+const Customer = require("../models/Customer");
 
 const logger = require("../utils/logger");
 
@@ -59,8 +60,8 @@ const getDashboardStats = async (startDate, endDate) => {
         },
         { $sort: { _id: 1 } },
       ]),
-      User.aggregate([
-        { $match: { role: "customer", ...dateMatch } },
+      Customer.aggregate([
+        { $match: { createdAt: { $exists: true }, ...dateMatch } },
         {
           $group: {
             _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
@@ -93,7 +94,7 @@ const getDashboardStats = async (startDate, endDate) => {
         },
       ]),
       ServiceBooking.aggregate([
-        { $match: { ...bookingDateMatch, paymentStatus: "paid" } },
+        { $match: { ...bookingDateMatch } },
         {
           $group: {
             _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
